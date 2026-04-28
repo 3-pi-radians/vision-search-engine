@@ -97,8 +97,10 @@ def run(splits_to_process: list[str] = ("gallery", "train")) -> None:
         logger.info("Processing %s split: %d images", split, len(images))
 
         for rel_path, item_id in tqdm(images, desc=split):
-            img_path = config.DATASET_IMAGES_DIR / rel_path
-            out_path = config.CROPS_DIR / split / rel_path
+            # annotation paths start with "img/" but DATASET_IMAGES_DIR already points to img_highres/
+            clean_rel = rel_path[4:] if rel_path.startswith("img/") else rel_path
+            img_path = config.DATASET_IMAGES_DIR / clean_rel
+            out_path = config.CROPS_DIR / split / clean_rel
 
             if not img_path.exists():
                 logger.warning("Image not found, skipping: %s", img_path)
