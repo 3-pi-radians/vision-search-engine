@@ -215,17 +215,6 @@ _Fill in after running eval.py_
 
 ---
 
-## Team
-
-| Member           | Area                                                          |
-| ---------------- | ------------------------------------------------------------- |
-| Pankaj Deopa     | Offline pipeline (YOLO, BLIP-2, CLIP fine-tuning, HNSW index) |
-| Yuvraj Deshmukh  | Backend core modules (detector, encoder, search, reranker)    |
-| Chaitanya Nemade | FastAPI server + integration                                  |
-| Sandiri Rohith   | Streamlit UI + evaluation + report                            |
-
----
-
 ## Dataset
 
 DeepFashion In-Shop Clothes Retrieval  
