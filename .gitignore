@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+*.egg-info/
+dist/
+build/
+
+# DeepFashion annotation files (served via Kaggle dataset)
+*.txt
+
+# Model weights & artifacts
+*.pt
+*.bin
+*.pkl
+clip_weights/
+crops/
+*.json
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
