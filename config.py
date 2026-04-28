@@ -35,8 +35,46 @@ YOLO_CONF_THRESHOLD = 0.3
 YOLO_MAX_DETECTIONS = 5    # cap for multi-item images; beyond this fall back to top-1
 
 # ---------------------------------------------------------------------------
-# CLIP / embeddings  (more settings added when CLIP script is written)
+# BLIP-2 captioning
 # ---------------------------------------------------------------------------
-CLIP_MODEL_NAME = "openai/clip-vit-base-patch32"
-TOP_K           = 15       # max K for retrieval (eval uses 5, 10, 15)
-ALPHA           = 0.7      # default alpha for configs B and C
+BLIP2_MODEL_NAME   = "Salesforce/blip2-opt-2.7b"
+CAPTIONS_PATH      = WORK_DIR / "captions.json"
+CAPTION_BATCH_SIZE = 8
+
+# ---------------------------------------------------------------------------
+# CLIP fine-tuning (Config C)
+# ---------------------------------------------------------------------------
+CLIP_MODEL_NAME          = "openai/clip-vit-base-patch32"
+CLIP_WEIGHTS_DIR         = WORK_DIR / "clip_weights"
+FINETUNE_UNFREEZE_BLOCKS = 4
+FINETUNE_EPOCHS          = 5
+FINETUNE_BATCH_SIZE      = 64
+FINETUNE_LR              = 1e-5
+FINETUNE_TEMPERATURE     = 0.07
+
+# ---------------------------------------------------------------------------
+# CLIP / embeddings
+# ---------------------------------------------------------------------------
+TOP_K  = 15    # max K for retrieval (eval uses 5, 10, 15)
+ALPHA  = 0.7   # default alpha for configs B and C
+
+# Ablation configs
+CONFIGS = {
+    "A": {"clip_finetuned": False, "use_captions": False, "alpha": 1.0},
+    "B": {"clip_finetuned": False, "use_captions": True,  "alpha": 0.7},
+    "C": {"clip_finetuned": True,  "use_captions": True,  "alpha": 0.7},
+}
+
+# ---------------------------------------------------------------------------
+# HNSW index
+# ---------------------------------------------------------------------------
+HNSW_INDEX_PATHS = {
+    "A": WORK_DIR / "hnsw_index_A.bin",
+    "B": WORK_DIR / "hnsw_index_B.bin",
+    "C": WORK_DIR / "hnsw_index_C.bin",
+}
+HNSW_SPACE            = "cosine"
+HNSW_DIM              = 512   # CLIP ViT-B/32 embedding dimension
+HNSW_EF_CONSTRUCTION  = 200
+HNSW_M                = 16
+HNSW_EF_SEARCH        = 50
