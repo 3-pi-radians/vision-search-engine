@@ -181,8 +181,8 @@ def run() -> None:
             anchor   = batch["anchor"].to(device)
             positive = batch["positive"].to(device)
 
-            a_emb = model.get_image_features(pixel_values=anchor)
-            p_emb = model.get_image_features(pixel_values=positive)
+            a_emb = model.visual_projection(model.vision_model(pixel_values=anchor).pooler_output)
+            p_emb = model.visual_projection(model.vision_model(pixel_values=positive).pooler_output)
 
             loss = infonce_loss(a_emb, p_emb, config.FINETUNE_TEMPERATURE)
 
