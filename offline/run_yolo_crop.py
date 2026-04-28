@@ -25,19 +25,19 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 
-def parse_eval_partition(partition_path: Path) -> dict[str, list[str]]:
-    """Returns {"train": [...], "query": [...], "gallery": [...]} of relative image paths."""
-    splits: dict[str, list[str]] = {"train": [], "query": [], "gallery": []}
+def parse_eval_partition(partition_path: Path) -> dict[str, list[tuple[str, str]]]:
+    """Returns {"train": [(img_path, item_id), ...], "query": [...], "gallery": [...]}."""
+    splits: dict[str, list[tuple[str, str]]] = {"train": [], "query": [], "gallery": []}
     with open(partition_path) as f:
         next(f)  # skip count line
-        next(f)  # skip header line
+        next(f)  # skipping header: image_name item_id evaluation_status
         for line in f:
             parts = line.strip().split()
-            if len(parts) < 2:
+            if len(parts) < 3:
                 continue
-            img_path, split = parts[0], parts[1].lower()
+            img_path, item_id, split = parts[0], parts[1], parts[2].lower()
             if split in splits:
-                splits[split].append(img_path)
+                splits[split].append((img_path, item_id))
     return splits
 
 
@@ -88,14 +88,15 @@ def run(splits_to_process: list[str] = ("gallery", "train")) -> None:
     logger.info("Parsing eval partition: %s", config.LIST_EVAL_PARTITION)
     splits = parse_eval_partition(config.LIST_EVAL_PARTITION)
 
-    image_paths: dict[int, str] = {}  # gallery index → crop path (for HNSW)
+    # gallery index → {path, item_id} — item_id is ground truth key for eval
+    image_paths: dict[int, dict] = {}
     gallery_idx = 0
 
     for split in splits_to_process:
         images = splits[split]
         logger.info("Processing %s split: %d images", split, len(images))
 
-        for rel_path in tqdm(images, desc=split):
+        for rel_path, item_id in tqdm(images, desc=split):
             img_path = config.DATASET_IMAGES_DIR / rel_path
             out_path = config.CROPS_DIR / split / rel_path
 
@@ -106,7 +107,7 @@ def run(splits_to_process: list[str] = ("gallery", "train")) -> None:
             if out_path.exists():
                 # resumable: already cropped
                 if split == "gallery":
-                    image_paths[gallery_idx] = str(out_path)
+                    image_paths[gallery_idx] = {"path": str(out_path), "item_id": item_id}
                     gallery_idx += 1
                 continue
 
@@ -117,12 +118,12 @@ def run(splits_to_process: list[str] = ("gallery", "train")) -> None:
                 continue
 
             if split == "gallery":
-                image_paths[gallery_idx] = str(out_path)
+                image_paths[gallery_idx] = {"path": str(out_path), "item_id": item_id}
                 gallery_idx += 1
 
         logger.info("Done %s split. Gallery index count so far: %d", split, gallery_idx)
 
-    # save gallery index → crop path mapping
+    # save gallery index → {path, item_id} mapping
     with open(config.IMAGE_PATHS_PATH, "w") as f:
         json.dump(image_paths, f)
     logger.info("Saved image_paths.json with %d gallery entries → %s", len(image_paths), config.IMAGE_PATHS_PATH)
