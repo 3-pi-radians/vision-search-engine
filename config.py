@@ -10,8 +10,8 @@ KAGGLE = os.path.exists("/kaggle")
 # Dataset paths
 # ---------------------------------------------------------------------------
 if KAGGLE:
-    DATASET_IMAGES_DIR = Path("/kaggle/input/deepfashion-inshop-clothes-retrieval/img_highres")
-    DATASET_ANNO_DIR   = Path("/kaggle/input/deepfashion-inshop-annotations")
+    DATASET_IMAGES_DIR = Path("/kaggle/input/datasets/hserdaraltan/deepfashion-inshop-clothes-retrieval/img_highres")
+    DATASET_ANNO_DIR   = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-annotations")
 else:
     DATASET_IMAGES_DIR = Path("data/img_highres")
     DATASET_ANNO_DIR   = Path("data/annotations")
