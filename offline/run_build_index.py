@@ -20,6 +20,15 @@ from transformers import CLIPModel, CLIPProcessor
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import config
 
+
+def remap_crop_path(old_path: str) -> Path:
+    marker = "/crops/"
+    idx = old_path.find(marker)
+    if idx != -1:
+        relative = old_path[idx + len(marker):]
+        return config.CROPS_DIR / relative
+    return Path(old_path)
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -67,21 +76,21 @@ def generate_embeddings(
 
         for idx in batch_idx:
             entry = image_paths[idx]
-            img = Image.open(entry["path"]).convert("RGB")
+            img = Image.open(remap_crop_path(entry["path"])).convert("RGB")
             images.append(img)
             if cfg["use_captions"]:
                 item_id = entry["item_id"]
                 texts.append(captions.get(item_id, "a clothing item"))
 
         img_inputs = processor(images=images, return_tensors="pt").to(device)
-        img_emb = model.get_image_features(**img_inputs)
+        img_emb = model.visual_projection(model.vision_model(pixel_values=img_inputs["pixel_values"]).pooler_output)
         img_emb = F.normalize(img_emb, dim=-1)
 
         if cfg["use_captions"]:
             txt_inputs = processor(
                 text=texts, return_tensors="pt", padding=True, truncation=True
             ).to(device)
-            txt_emb = model.get_text_features(**txt_inputs)
+            txt_emb = model.text_projection(model.text_model(**txt_inputs).pooler_output)
             txt_emb = F.normalize(txt_emb, dim=-1)
             fused = alpha * img_emb + (1.0 - alpha) * txt_emb
             fused = F.normalize(fused, dim=-1)
