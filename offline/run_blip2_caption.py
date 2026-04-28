@@ -22,6 +22,19 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 
+def remap_crop_path(old_path: str) -> Path:
+    """
+    Remaps old /kaggle/working/crops/... paths to the current
+    Kaggle input dataset location.
+    """
+    marker = "/crops/"
+    idx = old_path.find(marker)
+    if idx != -1:
+        relative = old_path[idx + len(marker):]  # e.g. gallery/WOMEN/Dresses/...
+        return config.CROPS_DIR / relative
+    return Path(old_path)
+
+
 def load_existing_captions() -> dict[str, str]:
     """Returns {item_id: caption} from existing captions.json."""
     if config.CAPTIONS_PATH.exists():
@@ -84,7 +97,7 @@ def run() -> None:
         images, valid_ids = [], []
 
         for item_id in batch_item_ids:
-            crop_path = Path(remaining[item_id])
+            crop_path = remap_crop_path(remaining[item_id])
             if not crop_path.exists():
                 logger.warning("Crop not found, skipping item_id %s: %s", item_id, crop_path)
                 continue
