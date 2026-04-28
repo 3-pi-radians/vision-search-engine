@@ -24,7 +24,7 @@ LIST_ITEM_INSHOP    = DATASET_ANNO_DIR / "list_item_inshop.txt"
 # Output / artifact paths (writable)
 # ---------------------------------------------------------------------------
 WORK_DIR         = Path("/kaggle/working") if KAGGLE else Path("data/working")
-CROPS_DIR        = Path("/kaggle/input/deepfashion-inshop-crops/crops") if KAGGLE else WORK_DIR / "crops"
+CROPS_DIR        = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-crops/crops") if KAGGLE else WORK_DIR / "crops"
 IMAGE_PATHS_PATH = Path("/kaggle/input/deepfashion-inshop-crops/image_paths.json") if KAGGLE else WORK_DIR / "image_paths.json"
 
 # ---------------------------------------------------------------------------
