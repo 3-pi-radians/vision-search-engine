@@ -58,8 +58,11 @@ async def lifespan(app: FastAPI):
     state.reranker = Reranker()
     logger.info("Reranker ready")
 
-    state.fetcher = ImageFetcher()
-    logger.info("ImageFetcher ready")
+    if config.IMAGE_PATHS_PATH.exists():
+        state.fetcher = ImageFetcher()
+        logger.info("ImageFetcher ready")
+    else:
+        logger.warning("image_paths.json not found at %s — fetcher disabled", config.IMAGE_PATHS_PATH)
 
     logger.info("=== Startup complete ===")
     yield
@@ -167,6 +170,9 @@ async def retrieve_endpoint(
 
     if config_name not in state.indexes:
         raise HTTPException(status_code=503, detail=f"HNSW index for config {config_name} not loaded.")
+
+    if state.fetcher is None:
+        raise HTTPException(status_code=503, detail="image_paths.json not loaded — artifacts unavailable locally.")
 
     image_data = await file.read()
     try:

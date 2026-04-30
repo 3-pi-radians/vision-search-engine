@@ -7,7 +7,7 @@ from pathlib import Path
 KAGGLE = os.path.exists("/kaggle")
 
 # ---------------------------------------------------------------------------
-# Dataset paths (read-only inputs)
+# Paths — switches automatically between Kaggle and local
 # ---------------------------------------------------------------------------
 if KAGGLE:
     DATASET_IMAGES_DIR = Path("/kaggle/input/datasets/hserdaraltan/deepfashion-inshop-clothes-retrieval/img_highres")
@@ -16,22 +16,19 @@ if KAGGLE:
     IMAGE_PATHS_PATH   = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-crops/image_paths.json")
     CAPTIONS_PATH      = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-captions/captions.json")
     CLIP_WEIGHTS_DIR   = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-clip-weights")
+    WORK_DIR           = Path("/kaggle/working")
 else:
     DATASET_IMAGES_DIR = Path("data/img_highres")
     DATASET_ANNO_DIR   = Path("data/annotations")
-    CROPS_DIR          = Path("data/working/crops")
-    IMAGE_PATHS_PATH   = Path("data/working/image_paths.json")
-    CAPTIONS_PATH      = Path("data/working/captions.json")
-    CLIP_WEIGHTS_DIR   = Path("data/working/clip_weights")
+    CROPS_DIR          = Path("data/crops")
+    IMAGE_PATHS_PATH   = Path("data/image_paths.json")
+    CAPTIONS_PATH      = Path("data/captions.json")
+    CLIP_WEIGHTS_DIR   = Path("data/clip_weights")
+    WORK_DIR           = Path("data/")
 
 LIST_EVAL_PARTITION = DATASET_ANNO_DIR / "list_eval_partition.txt"
 LIST_BBOX_INSHOP    = DATASET_ANNO_DIR / "list_bbox_inshop.txt"
 LIST_ITEM_INSHOP    = DATASET_ANNO_DIR / "list_item_inshop.txt"
-
-# ---------------------------------------------------------------------------
-# Output / writable paths (always /kaggle/working or local)
-# ---------------------------------------------------------------------------
-WORK_DIR = Path("/kaggle/working") if KAGGLE else Path("data/working")
 
 HNSW_INDEX_PATHS = {
     "A": WORK_DIR / "hnsw_index_A.bin",
@@ -51,9 +48,12 @@ YOLO_MAX_DETECTIONS = 5
 # ---------------------------------------------------------------------------
 BLIP2_MODEL_NAME   = "Salesforce/blip2-opt-2.7b"
 CAPTION_BATCH_SIZE = 8
+RERANK_BATCH_SIZE  = 4
+# False on local (MacBook can't fit 16 GB model); auto-True on Kaggle GPU for eval
+ENABLE_RERANKER    = KAGGLE
 
 # ---------------------------------------------------------------------------
-# CLIP fine-tuning (Config C)
+# CLIP
 # ---------------------------------------------------------------------------
 CLIP_MODEL_NAME          = "openai/clip-vit-base-patch32"
 FINETUNE_UNFREEZE_BLOCKS = 4
@@ -75,7 +75,7 @@ CONFIGS = {
 # HNSW index
 # ---------------------------------------------------------------------------
 HNSW_SPACE           = "cosine"
-HNSW_DIM             = 512   # CLIP ViT-B/32 embedding dimension
+HNSW_DIM             = 512
 HNSW_EF_CONSTRUCTION = 200
 HNSW_M               = 16
 HNSW_EF_SEARCH       = 50
@@ -83,10 +83,10 @@ HNSW_EF_SEARCH       = 50
 # ---------------------------------------------------------------------------
 # Retrieval
 # ---------------------------------------------------------------------------
-TOP_K           = 15   # max K (eval uses 5, 10, 15)
-TOP_K_RETRIEVAL = 50   # candidates fetched before re-ranking
-TOP_K_RERANK    = 15   # final results returned
-ALPHA           = 0.7  # default alpha for configs B and C
+TOP_K           = 15
+TOP_K_RETRIEVAL = 50
+TOP_K_RERANK    = 15
+ALPHA           = 0.7
 
 # ---------------------------------------------------------------------------
 # FastAPI

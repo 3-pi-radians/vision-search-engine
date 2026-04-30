@@ -13,16 +13,29 @@ logger = logging.getLogger(__name__)
 class Reranker:
     def __init__(self) -> None:
         self._device = "cuda" if torch.cuda.is_available() else "cpu"
-        logger.info("Loading BLIP-2 for re-ranking: %s on %s", config.BLIP2_MODEL_NAME, self._device)
+        self._processor = None
+        self._model = None
 
+        if not config.ENABLE_RERANKER:
+            logger.info("Reranker disabled — skipping BLIP-2 load")
+            return
+
+        logger.info("Loading BLIP-2: %s on %s", config.BLIP2_MODEL_NAME, self._device)
         self._processor = Blip2Processor.from_pretrained(config.BLIP2_MODEL_NAME)
-        self._model = Blip2ForConditionalGeneration.from_pretrained(
-            config.BLIP2_MODEL_NAME,
-            torch_dtype=torch.float16 if self._device == "cuda" else torch.float32,
-            device_map="auto",
-        )
+        if self._device == "cuda":
+            self._model = Blip2ForConditionalGeneration.from_pretrained(
+                config.BLIP2_MODEL_NAME,
+                load_in_8bit=True,
+                device_map="auto",
+            )
+        else:
+            self._model = Blip2ForConditionalGeneration.from_pretrained(
+                config.BLIP2_MODEL_NAME,
+                torch_dtype=torch.float32,
+                device_map="auto",
+            )
         self._model.eval()
-        logger.info("Reranker ready.")
+        logger.info("BLIP-2 loaded on %s", self._device)
 
     @torch.no_grad()
     def _itm_scores(
@@ -30,28 +43,27 @@ class Reranker:
         query_crop: Image.Image,
         candidate_images: list[Image.Image],
     ) -> list[float]:
-        """Returns ITM-proxy score for each candidate using captioning perplexity."""
         scores = []
         batch_size = config.RERANK_BATCH_SIZE
 
         for i in range(0, len(candidate_images), batch_size):
             batch = candidate_images[i: i + batch_size]
+            # 8-bit model manages its own dtype — only move to device, no dtype cast
             inputs = self._processor(
                 images=batch,
                 return_tensors="pt",
-            ).to(self._device, torch.float16 if self._device == "cuda" else torch.float32)
+            ).to(self._device)
 
             generated = self._model.generate(**inputs, max_new_tokens=20)
             captions = self._processor.batch_decode(generated, skip_special_tokens=True)
 
-            # score = CLIP-style similarity between query and each candidate caption
             query_inputs = self._processor(
                 images=[query_crop] * len(batch),
                 text=captions,
                 return_tensors="pt",
                 padding=True,
                 truncation=True,
-            ).to(self._device, torch.float16 if self._device == "cuda" else torch.float32)
+            ).to(self._device)
 
             # use language model logits as a proxy ITM score
             outputs = self._model(**query_inputs, labels=query_inputs["input_ids"])
@@ -71,6 +83,9 @@ class Reranker:
         Returns indices into candidate_paths sorted best-first.
         For config A (no captions), returns original order unchanged.
         """
+        if not config.ENABLE_RERANKER or self._model is None:
+            return list(range(len(candidate_paths)))
+
         cfg = config.CONFIGS[config_name]
         if not cfg["use_captions"]:
             return list(range(len(candidate_paths)))
