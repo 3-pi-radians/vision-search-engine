@@ -48,7 +48,6 @@ YOLO_MAX_DETECTIONS = 5
 BLIP2_MODEL_NAME   = "Salesforce/blip-itm-base-coco"
 CAPTION_BATCH_SIZE = 8
 RERANK_BATCH_SIZE  = 4
-# False on local (MacBook can't fit 16 GB model); auto-True on Kaggle GPU for eval
 ENABLE_RERANKER    = KAGGLE
 
 # ---------------------------------------------------------------------------
@@ -75,9 +74,9 @@ CONFIGS = {
 # ---------------------------------------------------------------------------
 HNSW_SPACE           = "cosine"
 HNSW_DIM             = 512
-HNSW_EF_CONSTRUCTION = 200
-HNSW_M               = 16
-HNSW_EF_SEARCH       = 50
+HNSW_EF_CONSTRUCTION = 400
+HNSW_M               = 32
+HNSW_EF_SEARCH       = 100
 
 # ---------------------------------------------------------------------------
 # Retrieval
