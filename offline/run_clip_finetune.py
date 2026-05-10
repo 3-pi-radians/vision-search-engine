@@ -151,7 +151,7 @@ def load_train_image_paths() -> dict[str, dict]:
         parts = p.parts
         item_id = next((part for part in parts if part.startswith("id_")), "unknown")
         entries[str(i)] = {
-            "path":    remap_crop_path(str(p)),  # remap stale paths
+            "path":    str(p),
             "item_id": item_id
         }
 
