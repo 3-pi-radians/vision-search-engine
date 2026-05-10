@@ -86,6 +86,30 @@ git clone https://github.com/3-pi-radians/vision-search-engine.git
 cd vision-search-engine
 ```
 
+### Download Pre-built Artifacts (Local Setup)
+
+To run the project locally without re-running the offline pipeline, download the pre-built artifacts from Kaggle:
+
+```bash
+mkdir -p data/clip_weights data/crops
+
+# Indexes + image_paths.json (85 MB)
+kaggle datasets download pankajdeopa/deepfashion-hnsw-indexes \
+    -p data/ --unzip
+
+# Captions (253 KB — instant)
+kaggle datasets download pankajdeopa/deepfashion-inshop-captions \
+    -p data/ --unzip
+
+# CLIP weights (605 MB)
+kaggle datasets download pankajdeopa/deepfashion-clip-weights \
+    -p data/clip_weights/ --unzip
+
+# Crops (2.4 GB)
+kaggle datasets download pankajdeopa/deepfashion-inshop-crops \
+    -p data/crops/ --unzip
+```
+
 ### Local paths (edit config.py)
 
 ```python
