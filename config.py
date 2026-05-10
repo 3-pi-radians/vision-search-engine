@@ -14,8 +14,8 @@ if KAGGLE:
     CAPTIONS_PATH      = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-captions/captions.json")
     CLIP_WEIGHTS_DIR   = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-clip-weights")
     WORK_DIR           = Path("/kaggle/working")
-    CROPS_DIR          = WORK_DIR / "crops"                  # ← was input path, now writable
-    IMAGE_PATHS_PATH   = WORK_DIR / "image_paths.json"       # ← was input path, now writable
+    CROPS_DIR          = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-crops/crops")              
+    IMAGE_PATHS_PATH   = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-crops/image_paths.json") 
 else:
     DATASET_IMAGES_DIR = Path("data/img_highres")
     DATASET_ANNO_DIR   = Path("data/annotations")
