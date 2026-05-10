@@ -6,6 +6,7 @@ Tab 2 — Batch Eval: run recall/NDCG/mAP evaluation against the gallery
 """
 
 import base64
+import html as _html
 import io
 import time
 from pathlib import Path
@@ -41,6 +42,37 @@ def pil_to_bytes(img: Image.Image, fmt: str = "JPEG") -> bytes:
     buf = io.BytesIO()
     img.convert("RGB").save(buf, format=fmt, quality=85)
     return buf.getvalue()
+
+
+def render_caption_tags(caption: str) -> str:
+    """
+    Structured caption "attr: value, attr: value" → badge pills (value only, max 6).
+    Falls back to plain italic text if caption has no ':' (old-format captions).
+    Returns an HTML string for embedding inside a card div.
+    """
+    caption = caption.strip()
+    if not caption:
+        return '<span style="color:#4b5563; font-style:italic; font-size:0.76em;">—</span>'
+
+    if ":" not in caption:
+        return (
+            f'<span style="font-style:italic; color:#6b7280; font-size:0.76em;">'
+            f'{_html.escape(caption[:120])}</span>'
+        )
+
+    tags = []
+    for pair in caption.split(","):
+        pair = pair.strip()
+        if not pair:
+            continue
+        value = pair.split(":", 1)[1].strip() if ":" in pair else pair
+        if value:
+            tags.append(_html.escape(value))
+
+    badges = "".join(
+        f'<span class="caption-tag">{tag}</span>' for tag in tags[:6]
+    )
+    return f'<div style="margin-top:4px; line-height:1.9;">{badges}</div>'
 
 
 def api_crop(image_bytes: bytes) -> dict | None:
@@ -152,6 +184,18 @@ button[title="View fullscreen"] {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+}
+
+/* Attribute pill badges for structured captions */
+.caption-tag {
+    display: inline-block;
+    background: #2d2d4e;
+    color: #9ca3af;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.72em;
+    margin: 2px 2px 0 0;
+    white-space: nowrap;
 }
 
 /* Upload hint */
@@ -388,24 +432,18 @@ with tab_search:
                             unsafe_allow_html=True,
                         )
 
-                    score     = item.get("score", 0.0)
-                    score_pct = round(score * 100, 1)
+                    # rank 1 → ~100%, rank 15 → ~9%
+                    score_pct = max(9, round(100 - (item["rank"] - 1) * 6.5))
                     caption   = item.get("caption", "") or ""
-                    caption_display = (caption[:100] + "…") if len(caption) > 100 else caption
 
                     st.markdown(
                         f'<div class="result-card">'
                         f'<div class="rank-badge">#{item["rank"]}</div>'
-                        f'<div class="item-id">{item["item_id"]}</div>'
-                        f'<div style="display:flex; justify-content:space-between; '
-                        f'align-items:center; margin: 4px 0 2px;">'
-                        f'<div class="score-bar-wrap" style="flex:1; margin:0;">'
+                        f'<div class="item-id">{_html.escape(item["item_id"])}</div>'
+                        f'<div class="score-bar-wrap">'
                         f'<div class="score-bar-fill" style="width:{score_pct}%;"></div>'
                         f'</div>'
-                        f'<span style="font-size:0.75em; color:#a78bfa; margin-left:8px; '
-                        f'white-space:nowrap;">{score_pct}%</span>'
-                        f'</div>'
-                        f'<div class="caption-text">{caption_display if caption_display else "—"}</div>'
+                        f'{render_caption_tags(caption)}'
                         f'</div>',
                         unsafe_allow_html=True,
                     )
