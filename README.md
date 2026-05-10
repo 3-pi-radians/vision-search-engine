@@ -160,7 +160,7 @@ All scripts are **resumable** — they skip already-processed items on re-run.
 ## Running the API Server
 
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn main:app --host 0.0.0.0 --port 8504 --reload
 ```
 
 ### Endpoints
@@ -184,10 +184,10 @@ Output: [{item_id, image_path, score}, ...]
 ## Running the Streamlit UI
 
 ```bash
-streamlit run streamlit_app.py
+streamlit run streamlit_app.py --server.port 8502
 ```
 
-The UI runs at `http://localhost:8501`. Make sure the FastAPI server is running first.
+The UI runs at `http://localhost:8502`. Make sure the FastAPI server is running first.
 
 ### UI Flow
 
