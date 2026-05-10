@@ -7,12 +7,26 @@ import config
 logger = logging.getLogger(__name__)
 
 
+def remap_crop_path(old_path: str) -> str:
+    marker = "/crops/"
+    idx = old_path.find(marker)
+    if idx != -1:
+        relative = old_path[idx + len(marker):]
+        return str(config.CROPS_DIR / relative)
+    return old_path
+
 class ImageFetcher:
     def __init__(self) -> None:
         with open(config.IMAGE_PATHS_PATH) as f:
             raw = json.load(f)
-        # normalise keys to int
-        self._image_paths: dict[int, dict] = {int(k): v for k, v in raw.items()}
+        # normalise keys to int and remap paths eagerly
+        self._image_paths: dict[int, dict] = {
+            int(k): {
+                "item_id": v["item_id"],
+                "path": remap_crop_path(v["path"])
+            }
+            for k, v in raw.items()
+        }
 
         self._captions: dict[str, str] = {}
         if config.CAPTIONS_PATH.exists():
@@ -26,15 +40,6 @@ class ImageFetcher:
             len(self._image_paths),
             len(self._captions),
         )
-
-    def _resolve_path(self, stored_path: str) -> str:
-        """Remap stale /kaggle/working/crops/... to current CROPS_DIR."""
-        marker = "/crops/"
-        idx = stored_path.find(marker)
-        if idx != -1:
-            relative = stored_path[idx + len(marker):]
-            return str(config.CROPS_DIR / relative)
-        return stored_path
 
     def fetch(self, labels: list[int]) -> list[dict]:
         """
@@ -51,7 +56,7 @@ class ImageFetcher:
             item_id = entry["item_id"]
             results.append({
                 "label":   label,
-                "path":    self._resolve_path(entry["path"]),
+                "path":    entry["path"],
                 "item_id": item_id,
                 "caption": self._captions.get(item_id, ""),
             })

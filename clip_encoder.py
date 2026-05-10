@@ -36,6 +36,8 @@ class CLIPEncoder:
         logger.info("Loading fine-tuned CLIP weights from %s", ckpt_path)
         model = CLIPModel.from_pretrained(config.CLIP_MODEL_NAME)
         state = torch.load(ckpt_path, map_location=self._device)
+        if "model_state" in state:
+            state = state["model_state"]
         model.load_state_dict(state)
         model.to(self._device)
         model.eval()

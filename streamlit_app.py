@@ -18,7 +18,7 @@ from PIL import Image
 # Config
 # ---------------------------------------------------------------------------
 
-API_BASE = "http://localhost:8000"
+API_BASE = "http://localhost:8002"
 CONFIGS  = ["A", "B", "C"]
 CONFIG_LABELS = {
     "A": "A — Pretrained CLIP, image-only",
