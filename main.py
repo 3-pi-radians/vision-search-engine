@@ -105,6 +105,7 @@ class ResultItem(BaseModel):
     item_id:  str
     caption:  str
     path:     str
+    score:    float
 
 
 class RetrieveResponse(BaseModel):
@@ -184,7 +185,7 @@ async def retrieve_endpoint(
     embedding = state.encoder.encode(crop, config_name=config_name)
 
     # 2. HNSW search — fetch more candidates than needed for re-ranking
-    labels = state.indexes[config_name].search(embedding, k=config.TOP_K_RETRIEVAL)
+    labels, distances = state.indexes[config_name].search(embedding, k=config.TOP_K_RETRIEVAL)
 
     # 3. fetch metadata for candidates
     candidates = state.fetcher.fetch(labels)
@@ -194,15 +195,18 @@ async def retrieve_endpoint(
     ranked_indices = state.reranker.rerank(crop, candidate_paths, config_name)
 
     # 5. build final response (top K_RERANK)
+    # hnswlib cosine space returns 1 - cosine_similarity as distance
     results = []
     for rank, idx in enumerate(ranked_indices[: config.TOP_K_RERANK]):
         c = candidates[idx]
+        similarity = round(1.0 - distances[idx], 4)
         results.append(ResultItem(
             rank=rank + 1,
             label=c["label"],
             item_id=c["item_id"],
             caption=c["caption"],
             path=c["path"],
+            score=similarity,
         ))
 
     return RetrieveResponse(config_name=config_name, results=results)

@@ -101,6 +101,11 @@ st.markdown("""
     border-radius: 8px !important;
 }
 
+/* Hide fullscreen/zoom button on images */
+button[title="View fullscreen"] {
+    display: none !important;
+}
+
 /* Result card */
 .result-card {
     background: #1a1a2e;
@@ -131,7 +136,6 @@ st.markdown("""
     background: #2d2d4e;
     border-radius: 4px;
     height: 6px;
-    margin: 6px 0;
     overflow: hidden;
 }
 .score-bar-fill {
@@ -262,6 +266,11 @@ with tab_search:
         label_visibility="collapsed",
     )
 
+    # Clear all results when the file uploader is cleared (X button clicked)
+    if uploaded is None and st.session_state.get("last_uploaded_filename"):
+        for key in ("crop_data", "selected_crop_idx", "results_data", "search_elapsed", "last_uploaded_filename"):
+            st.session_state.pop(key, None)
+
     # BUG 1 & 2: clear all stale state when a new file is uploaded
     if uploaded is not None:
         if uploaded.name != st.session_state.get("last_uploaded_filename"):
@@ -379,8 +388,8 @@ with tab_search:
                             unsafe_allow_html=True,
                         )
 
-                    # rank 1 → ~100%, rank 15 → ~9%
-                    score_pct = max(9, round(100 - (item["rank"] - 1) * 6.5))
+                    score     = item.get("score", 0.0)
+                    score_pct = round(score * 100, 1)
                     caption   = item.get("caption", "") or ""
                     caption_display = (caption[:100] + "…") if len(caption) > 100 else caption
 
@@ -388,8 +397,13 @@ with tab_search:
                         f'<div class="result-card">'
                         f'<div class="rank-badge">#{item["rank"]}</div>'
                         f'<div class="item-id">{item["item_id"]}</div>'
-                        f'<div class="score-bar-wrap">'
+                        f'<div style="display:flex; justify-content:space-between; '
+                        f'align-items:center; margin: 4px 0 2px;">'
+                        f'<div class="score-bar-wrap" style="flex:1; margin:0;">'
                         f'<div class="score-bar-fill" style="width:{score_pct}%;"></div>'
+                        f'</div>'
+                        f'<span style="font-size:0.75em; color:#a78bfa; margin-left:8px; '
+                        f'white-space:nowrap;">{score_pct}%</span>'
                         f'</div>'
                         f'<div class="caption-text">{caption_display if caption_display else "—"}</div>'
                         f'</div>',

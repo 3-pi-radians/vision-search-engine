@@ -24,12 +24,12 @@ class HNSWSearch:
         logger.info("Loaded HNSW index from %s (%d items)", index_path, index.get_current_count())
         return cls(index)
 
-    def search(self, query_emb: np.ndarray, k: int = config.TOP_K_RETRIEVAL) -> list[int]:
+    def search(self, query_emb: np.ndarray, k: int = config.TOP_K_RETRIEVAL) -> tuple[list[int], list[float]]:
         if query_emb.ndim == 1:
             query_emb = query_emb.reshape(1, -1)
 
-        labels, _ = self._index.knn_query(query_emb, k=min(k, self._index.get_current_count()))
-        return labels[0].tolist()
+        labels, distances = self._index.knn_query(query_emb, k=min(k, self._index.get_current_count()))
+        return labels[0].tolist(), distances[0].tolist()
 
     @property
     def size(self) -> int:
