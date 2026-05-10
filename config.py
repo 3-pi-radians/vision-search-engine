@@ -53,12 +53,13 @@ ENABLE_RERANKER    = KAGGLE
 # ---------------------------------------------------------------------------
 # CLIP
 # ---------------------------------------------------------------------------
-CLIP_MODEL_NAME          = "openai/clip-vit-base-patch32"
-FINETUNE_UNFREEZE_BLOCKS = 4
-FINETUNE_EPOCHS          = 5
+CLIP_MODEL_NAME          = "openai/clip-vit-base-patch16"
+FINETUNE_UNFREEZE_BLOCKS = 6
+FINETUNE_EPOCHS          = 10
 FINETUNE_BATCH_SIZE      = 64
 FINETUNE_LR              = 1e-5
-FINETUNE_TEMPERATURE     = 0.07
+FINETUNE_TEMPERATURE     = 0.05
+FINETUNE_PATIENCE = 3
 
 # ---------------------------------------------------------------------------
 # Ablation configurations
