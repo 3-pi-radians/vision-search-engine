@@ -8,22 +8,33 @@ KAGGLE = os.path.exists("/kaggle")
 
 # ---------------------------------------------------------------------------
 # Paths — switches automatically between Kaggle and local
+# ---------------------------------------------------------------------------
 if KAGGLE:
-    DATASET_IMAGES_DIR = Path("/kaggle/input/datasets/hserdaraltan/deepfashion-inshop-clothes-retrieval/img_highres")
-    DATASET_ANNO_DIR   = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-annotations")
-    CAPTIONS_PATH      = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-captions/captions.json")
-    WORK_DIR           = Path("/kaggle/working")
-    CROPS_DIR          = WORK_DIR / "crops"
-    IMAGE_PATHS_PATH   = WORK_DIR / "image_paths.json"
-    CLIP_WEIGHTS_DIR   = WORK_DIR / "clip_weights" 
+    DATASET_IMAGES_DIR  = Path("/kaggle/input/datasets/hserdaraltan/deepfashion-inshop-clothes-retrieval/img_highres")
+    DATASET_ANNO_DIR    = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-annotations")
+    CAPTIONS_PATH       = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-captions/captions.json")
+    WORK_DIR            = Path("/kaggle/working")
+
+    # READ paths — existing published datasets
+    CROPS_DIR_INPUT     = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-crops/crops")
+    IMAGE_PATHS_INPUT   = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-crops/image_paths.json")
+    CLIP_WEIGHTS_INPUT  = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-clip-weights")
+
+    # WRITE paths — new artifacts go here
+    CROPS_DIR           = WORK_DIR / "crops"
+    IMAGE_PATHS_PATH    = WORK_DIR / "image_paths.json"
+    CLIP_WEIGHTS_DIR    = WORK_DIR / "clip_weights"
 else:
-    DATASET_IMAGES_DIR = Path("data/img_highres")
-    DATASET_ANNO_DIR   = Path("data/annotations")
-    CROPS_DIR          = Path("data/crops")
-    IMAGE_PATHS_PATH   = Path("data/image_paths.json")
-    CAPTIONS_PATH      = Path("data/captions.json")
-    CLIP_WEIGHTS_DIR   = Path("data/clip_weights")
-    WORK_DIR           = Path("data/")
+    DATASET_IMAGES_DIR  = Path("data/img_highres")
+    DATASET_ANNO_DIR    = Path("data/annotations")
+    CAPTIONS_PATH       = Path("data/captions.json")
+    WORK_DIR            = Path("data/")
+    CROPS_DIR_INPUT     = Path("data/crops")
+    IMAGE_PATHS_INPUT   = Path("data/image_paths.json")
+    CLIP_WEIGHTS_INPUT  = Path("data/clip_weights")
+    CROPS_DIR           = Path("data/crops")
+    IMAGE_PATHS_PATH    = Path("data/image_paths.json")
+    CLIP_WEIGHTS_DIR    = Path("data/clip_weights")
 
 LIST_EVAL_PARTITION = DATASET_ANNO_DIR / "list_eval_partition.txt"
 LIST_BBOX_INSHOP    = DATASET_ANNO_DIR / "list_bbox_inshop.txt"

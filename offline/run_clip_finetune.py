@@ -140,7 +140,7 @@ def infonce_loss(a_emb: torch.Tensor, p_emb: torch.Tensor, temperature: float) -
 
 def load_train_image_paths() -> dict[str, dict]:
     """Scan train crops directory and build path → item_id lookup."""
-    train_crops_dir = config.CROPS_DIR / "train"
+    train_crops_dir = config.CROPS_DIR_INPUT / "train"
     if not train_crops_dir.exists():
         raise FileNotFoundError(
             f"Train crops not found at {train_crops_dir}. Run run_yolo_crop.py first."
