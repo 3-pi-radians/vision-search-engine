@@ -54,12 +54,19 @@ YOLO_CONF_THRESHOLD = 0.5
 YOLO_MAX_DETECTIONS = 5
 
 # ---------------------------------------------------------------------------
-# BLIP-2
+# BLIP-2 captioning (offline — run_blip2_caption.py)
 # ---------------------------------------------------------------------------
-BLIP2_MODEL_NAME   = "Salesforce/blip-itm-base-coco"
-CAPTION_BATCH_SIZE = 8
-RERANK_BATCH_SIZE  = 4
-ENABLE_RERANKER    = KAGGLE
+BLIP2_MODEL_NAME         = "Salesforce/blip2-flan-t5-xl"  # structured caption generation
+CAPTION_BATCH_SIZE       = 4                               # reduced for flan-t5-xl VRAM budget
+BLIP2_NUM_BEAMS          = 3                               # beam search width
+BLIP2_MAX_NEW_TOKENS     = 75                              # max caption length in tokens
+BLIP2_MIN_LENGTH         = 10                              # prevents degenerate 1–2 word outputs
+BLIP2_REPETITION_PENALTY = 1.2                            # discourages repeated attribute phrases
+
+# BLIP-ITM reranker (online — reranker.py) — separate smaller model, purpose-built for scoring
+BLIP2_RERANK_MODEL_NAME  = "Salesforce/blip-itm-base-coco"
+RERANK_BATCH_SIZE        = 4
+ENABLE_RERANKER          = KAGGLE
 
 # ---------------------------------------------------------------------------
 # CLIP
@@ -70,7 +77,7 @@ FINETUNE_EPOCHS          = 10
 FINETUNE_BATCH_SIZE      = 64
 FINETUNE_LR              = 1e-5
 FINETUNE_TEMPERATURE     = 0.05
-FINETUNE_PATIENCE = 3
+FINETUNE_PATIENCE        = 3
 
 # ---------------------------------------------------------------------------
 # Ablation configurations

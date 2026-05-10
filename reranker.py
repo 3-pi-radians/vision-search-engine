@@ -20,10 +20,10 @@ class Reranker:
             logger.info("Reranker disabled — skipping BLIP-ITM load")
             return
 
-        logger.info("Loading BLIP-ITM: %s on %s", config.BLIP2_MODEL_NAME, self._device)
-        self._processor = BlipProcessor.from_pretrained(config.BLIP2_MODEL_NAME)
+        logger.info("Loading BLIP-ITM: %s on %s", config.BLIP2_RERANK_MODEL_NAME, self._device)
+        self._processor = BlipProcessor.from_pretrained(config.BLIP2_RERANK_MODEL_NAME)
         self._model = BlipForImageTextRetrieval.from_pretrained(
-            config.BLIP2_MODEL_NAME,
+            config.BLIP2_RERANK_MODEL_NAME,
             torch_dtype=torch.float16 if self._device == "cuda" else torch.float32,
         ).to(self._device)
         self._model.eval()

@@ -36,7 +36,7 @@ The system supports three ablation configurations (A, B, C) controlled by a sing
 | ------ | -------------------------- | --------------------- | ----- |
 | A      | Pretrained, vision only    | Not used              | 1.0   |
 | B      | Frozen pretrained          | Frozen, captions used | 0.7   |
-| C      | Fine-tuned (last 4 blocks) | Frozen, captions used | 0.7   |
+| C      | Fine-tuned (last 6 blocks) | Frozen, captions used | 0.7   |
 
 ### Fused Embedding
 
@@ -54,6 +54,7 @@ vision-search-engine/
 ├── offline/
 │   ├── run_yolo_crop.py           # Step 1 — YOLO cropping
 │   ├── run_blip2_caption.py       # Step 2 — BLIP-2 captioning
+│   ├── blip2_prompts.py           # Category-specific caption prompts
 │   ├── run_clip_finetune.py       # Step 3 — CLIP fine-tuning
 │   └── run_build_index.py         # Step 4 — HNSW index build
 ├── detectors/
@@ -131,7 +132,7 @@ Run in order — each step depends on the previous:
 # Step 1 — YOLO cropping (~27 min on GPU T4)
 python offline/run_yolo_crop.py
 
-# Step 2 — BLIP-2 captioning (~45 min on GPU T4 x2)
+# Step 2 — BLIP-2 captioning (~60 min on GPU T4 x2, blip2-flan-t5-xl)
 python offline/run_blip2_caption.py
 
 # Step 3 — CLIP fine-tuning (~16 min on GPU T4, 5 epochs)
@@ -149,7 +150,7 @@ All scripts are **resumable** — they skip already-processed items on re-run.
 | -------------------------------- | ---------------------------------------------------------- |
 | `crops/`                         | 38,494 YOLO-cropped images (12,612 gallery + 25,882 train) |
 | `image_paths.json`               | `{index: {path, item_id}}` — gallery index mapping         |
-| `captions.json`                  | `{item_id: caption}` — 3,985 BLIP-2 captions               |
+| `captions.json`                  | `{item_id: caption}` — 3,985 structured captions (blip2-flan-t5-xl, category-aware prompts) |
 | `clip_weights/clip_finetuned.pt` | Fine-tuned CLIP vision encoder (605 MB)                    |
 | `hnsw_index_A.bin`               | HNSW index — pretrained CLIP, image only                   |
 | `hnsw_index_B.bin`               | HNSW index — pretrained CLIP + captions                    |
@@ -194,7 +195,7 @@ The UI runs at `http://localhost:8502`. Make sure the FastAPI server is running 
 1. Select ablation config (A / B / C) and alpha slider
 2. Upload a clothing image
 3. Confirm or reject the YOLO crop (if multiple items detected, select one)
-4. View top-K results with item IDs and similarity scores
+4. View top-K results with item IDs and structured attribute tags
 5. Optionally run batch evaluation mode
 
 ---
