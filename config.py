@@ -46,7 +46,7 @@ YOLO_MAX_DETECTIONS = 5
 # ---------------------------------------------------------------------------
 # BLIP-2
 # ---------------------------------------------------------------------------
-BLIP2_MODEL_NAME   = "Salesforce/blip2-opt-2.7b"
+BLIP2_MODEL_NAME   = "Salesforce/blip-itm-base-coco"
 CAPTION_BATCH_SIZE = 8
 RERANK_BATCH_SIZE  = 4
 # False on local (MacBook can't fit 16 GB model); auto-True on Kaggle GPU for eval

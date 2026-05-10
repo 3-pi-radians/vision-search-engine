@@ -3,7 +3,7 @@ from pathlib import Path
 
 import torch
 from PIL import Image
-from transformers import Blip2Processor, Blip2ForConditionalGeneration
+from transformers import BlipProcessor, BlipForImageTextRetrieval
 
 import config
 
@@ -17,59 +17,40 @@ class Reranker:
         self._model = None
 
         if not config.ENABLE_RERANKER:
-            logger.info("Reranker disabled — skipping BLIP-2 load")
+            logger.info("Reranker disabled — skipping BLIP-ITM load")
             return
 
-        logger.info("Loading BLIP-2: %s on %s", config.BLIP2_MODEL_NAME, self._device)
-        self._processor = Blip2Processor.from_pretrained(config.BLIP2_MODEL_NAME)
-        if self._device == "cuda":
-            self._model = Blip2ForConditionalGeneration.from_pretrained(
-                config.BLIP2_MODEL_NAME,
-                load_in_8bit=True,
-                device_map="auto",
-            )
-        else:
-            self._model = Blip2ForConditionalGeneration.from_pretrained(
-                config.BLIP2_MODEL_NAME,
-                torch_dtype=torch.float32,
-                device_map="auto",
-            )
+        logger.info("Loading BLIP-ITM: %s on %s", config.BLIP2_MODEL_NAME, self._device)
+        self._processor = BlipProcessor.from_pretrained(config.BLIP2_MODEL_NAME)
+        self._model = BlipForImageTextRetrieval.from_pretrained(
+            config.BLIP2_MODEL_NAME,
+            torch_dtype=torch.float16 if self._device == "cuda" else torch.float32,
+        ).to(self._device)
         self._model.eval()
-        logger.info("BLIP-2 loaded on %s", self._device)
+        logger.info("BLIP-ITM loaded on %s", self._device)
 
     @torch.no_grad()
     def _itm_scores(
         self,
         query_crop: Image.Image,
         candidate_images: list[Image.Image],
+        captions: list[str],
     ) -> list[float]:
         scores = []
         batch_size = config.RERANK_BATCH_SIZE
 
         for i in range(0, len(candidate_images), batch_size):
-            batch = candidate_images[i: i + batch_size]
-            # 8-bit model manages its own dtype — only move to device, no dtype cast
-            inputs = self._processor(
-                images=batch,
-                return_tensors="pt",
-            ).to(self._device)
+            batch_images   = candidate_images[i : i + batch_size]
+            batch_captions = captions[i : i + batch_size]
 
-            generated = self._model.generate(**inputs, max_new_tokens=20)
-            captions = self._processor.batch_decode(generated, skip_special_tokens=True)
-
-            query_inputs = self._processor(
-                images=[query_crop] * len(batch),
-                text=captions,
-                return_tensors="pt",
-                padding=True,
-                truncation=True,
-            ).to(self._device)
-
-            # use language model logits as a proxy ITM score
-            outputs = self._model(**query_inputs, labels=query_inputs["input_ids"])
-            # negative loss = higher is better
-            batch_scores = [-outputs.loss.item()] * len(batch)
-            scores.extend(batch_scores)
+            for img, caption in zip(batch_images, batch_captions):
+                inputs = self._processor(
+                    img,
+                    caption,
+                    return_tensors="pt",
+                ).to(self._device)
+                itm_score = self._model(**inputs)[0].item()
+                scores.append(itm_score)
 
         return scores
 
@@ -91,7 +72,8 @@ class Reranker:
             return list(range(len(candidate_paths)))
 
         candidate_images = []
-        valid_indices = []
+        captions         = []
+        valid_indices    = []
 
         for i, path in enumerate(candidate_paths):
             p = Path(path)
@@ -100,6 +82,8 @@ class Reranker:
                 continue
             try:
                 candidate_images.append(Image.open(p).convert("RGB"))
+                # Use path stem as a lightweight caption proxy if no caption store
+                captions.append(p.stem.replace("_", " "))
                 valid_indices.append(i)
             except Exception as e:
                 logger.error("Failed to open candidate %s: %s", path, e)
@@ -107,7 +91,7 @@ class Reranker:
         if not candidate_images:
             return list(range(len(candidate_paths)))
 
-        scores = self._itm_scores(query_crop, candidate_images)
+        scores = self._itm_scores(query_crop, candidate_images, captions)
 
         # sort valid indices by score descending
         ranked = sorted(zip(valid_indices, scores), key=lambda x: x[1], reverse=True)
@@ -126,8 +110,9 @@ if __name__ == "__main__":
 
     dummy = Image.fromarray(np.zeros((224, 224, 3), dtype=np.uint8))
 
-    # config A — should return unchanged order without loading BLIP-2 scoring
+    # config A — should return unchanged order without loading BLIP-ITM scoring
     result_a = reranker.rerank(dummy, ["a.jpg", "b.jpg", "c.jpg"], "A")
     assert result_a == [0, 1, 2], f"Config A should preserve order, got {result_a}"
     print(f"Config A (no rerank): {result_a} OK")
-    print("Smoke test passed (BLIP-2 ITM scoring requires real images + GPU to fully verify)")
+    print("Smoke test passed (BLIP-ITM scoring requires real images + GPU to fully verify)")
+
