@@ -59,7 +59,7 @@ YOLO_MAX_DETECTIONS = 5
 BLIP2_MODEL_NAME         = "Salesforce/blip2-flan-t5-xl"  # structured caption generation
 CAPTION_BATCH_SIZE       = 4                               # reduced for flan-t5-xl VRAM budget
 BLIP2_NUM_BEAMS          = 3                               # beam search width
-BLIP2_MAX_NEW_TOKENS     = 75                              # max caption length in tokens
+BLIP2_MAX_NEW_TOKENS     = 50                              # max caption length in tokens
 BLIP2_MIN_LENGTH         = 10                              # prevents degenerate 1–2 word outputs
 BLIP2_REPETITION_PENALTY = 1.2                            # discourages repeated attribute phrases
 
