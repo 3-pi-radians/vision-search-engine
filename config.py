@@ -21,9 +21,10 @@ if KAGGLE:
     CLIP_WEIGHTS_INPUT  = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-clip-weights")
 
     # WRITE paths — new artifacts go here
-    CROPS_DIR           = WORK_DIR / "crops"
-    IMAGE_PATHS_PATH    = WORK_DIR / "image_paths.json"
-    CLIP_WEIGHTS_DIR    = WORK_DIR / "clip_weights"
+    CROPS_DIR           = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-crops/crops")
+    IMAGE_PATHS_PATH    = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-crops/image_paths.json")
+    CLIP_WEIGHTS_DIR    = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-clip-weights")
+    CAPTIONS_PATH    = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-captions/captions.json")
 else:
     DATASET_IMAGES_DIR  = Path("data/img_highres")
     DATASET_ANNO_DIR    = Path("data/annotations")
