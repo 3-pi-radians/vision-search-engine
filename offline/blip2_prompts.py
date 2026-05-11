@@ -1,163 +1,127 @@
 """
 Category-specific BLIP-2 prompts for structured fashion captioning.
-Keys match DeepFashion folder names exactly (extracted from crop path at runtime).
+Keys match DeepFashion folder names exactly.
 
-v3 changes:
-- Switched from fill-in-the-blank [value] format to Q&A style
-- States garment type as fact first ("This image shows a dress.")
-- Asks direct questions about each attribute
-- Uses "Answer as: X: Y" format — no brackets, no parenthetical options
-- Explicit ignore instructions for bottom garments to avoid top description
+v4: Switched to single concise sentence format.
+No templates, no placeholders, no structured format.
+Model describes what it sees naturally.
 """
 
 CATEGORY_PROMPTS: dict[str, str] = {
     "Dresses": (
         "This image shows a dress. "
-        "Describe the dress with these details: "
-        "What is the length? What is the neckline style? "
-        "What are the sleeves like? What color is it? "
-        "What pattern does it have? What fabric does it appear to be? "
-        "Answer as: length: X, neckline: X, sleeves: X, color: X, pattern: X, fabric: X"
+        "Describe only the dress in one concise sentence using visible fashion attributes "
+        "such as color, fit, sleeves, neckline, length, and style. "
+        "If some attributes are unclear, omit them."
     ),
     "Blouses_Shirts": (
         "This image shows a blouse or shirt. "
-        "Describe only the top garment with these details: "
-        "What style is it? What is the neckline? "
-        "What are the sleeves like? What color is it? "
-        "What pattern does it have? How does it fit? "
-        "Answer as: style: X, neckline: X, sleeves: X, color: X, pattern: X, fit: X"
+        "Describe only the top garment in one concise sentence using visible fashion attributes "
+        "such as color, fit, sleeves, neckline, pattern, and style. "
+        "If some attributes are unclear, omit them."
     ),
     "Pants": (
         "This image shows a pair of pants. "
-        "Describe only the pants with these details: "
-        "What is the cut? What is the rise? "
-        "What color are they? What fabric are they made of? "
-        "How do they fit? "
-        "Answer as: cut: X, rise: X, color: X, fabric: X, fit: X"
+        "Describe only the pants in one concise sentence using visible fashion attributes "
+        "such as color, cut, rise, fabric, and fit. "
+        "If some attributes are unclear, omit them."
     ),
     "Denim": (
         "This image shows a denim garment. "
-        "Describe only the denim item with these details: "
-        "What is the cut or style? What is the rise? "
-        "What color or wash is it? Is there any distressing? "
-        "How does it fit? "
-        "Answer as: cut: X, rise: X, color: X, distressing: X, fit: X"
+        "Describe only the denim item in one concise sentence using visible fashion attributes "
+        "such as color, wash, cut, rise, distressing, and fit. "
+        "If some attributes are unclear, omit them."
     ),
     "Skirts": (
         "This image shows a skirt. "
-        "Describe only the skirt with these details: "
-        "What is the length? What is the silhouette? "
-        "What color is it? What pattern does it have? "
-        "What fabric does it appear to be? "
-        "Answer as: length: X, silhouette: X, color: X, pattern: X, fabric: X"
+        "Describe only the skirt in one concise sentence using visible fashion attributes "
+        "such as color, length, silhouette, pattern, and fabric. "
+        "If some attributes are unclear, omit them."
     ),
     "Sweaters": (
         "This image shows a sweater. "
-        "Describe only the sweater with these details: "
-        "What style is it? What is the neckline? "
-        "What are the sleeves like? What color is it? "
-        "What pattern does it have? How heavy is the knit? "
-        "Answer as: style: X, neckline: X, sleeves: X, color: X, pattern: X, weight: X"
+        "Describe only the sweater in one concise sentence using visible fashion attributes "
+        "such as color, neckline, sleeves, pattern, knit weight, and style. "
+        "If some attributes are unclear, omit them."
     ),
     "Cardigans": (
         "This image shows a cardigan. "
-        "Describe only the cardigan with these details: "
-        "What style is it? How does it close? "
-        "What are the sleeves like? What color is it? "
-        "What pattern does it have? How does it fit? "
-        "Answer as: style: X, closure: X, sleeves: X, color: X, pattern: X, fit: X"
+        "Describe only the cardigan in one concise sentence using visible fashion attributes "
+        "such as color, closure, sleeves, pattern, fit, and style. "
+        "If some attributes are unclear, omit them."
     ),
     "Jackets_Coats": (
         "This image shows a jacket or coat. "
-        "Describe only the outerwear with these details: "
-        "What style is it? How does it close? "
-        "What is the length? What color is it? "
-        "What fabric does it appear to be? How does it fit? "
-        "Answer as: style: X, closure: X, length: X, color: X, fabric: X, fit: X"
+        "Describe only the outerwear in one concise sentence using visible fashion attributes "
+        "such as color, style, closure, length, fabric, and fit. "
+        "If some attributes are unclear, omit them."
     ),
     "Jackets_Vests": (
         "This image shows a jacket or vest. "
-        "Describe only the jacket or vest with these details: "
-        "What style is it? How does it close? "
-        "What is the length? What color is it? "
-        "What fabric does it appear to be? How does it fit? "
-        "Answer as: style: X, closure: X, length: X, color: X, fabric: X, fit: X"
+        "Describe only the jacket or vest in one concise sentence using visible fashion attributes "
+        "such as color, style, closure, length, fabric, and fit. "
+        "If some attributes are unclear, omit them."
     ),
     "Shorts": (
         "This image shows a pair of shorts. "
-        "Describe only the shorts and ignore any top or shirt worn with them. "
-        "What is the length? What is the rise? "
-        "What color are they? What fabric are they made of? "
-        "How do they fit? "
-        "Answer as: length: X, rise: X, color: X, fabric: X, fit: X"
+        "Describe only the shorts in one concise sentence using visible fashion attributes "
+        "such as color, length, fabric, rise, and fit. "
+        "Do not describe any top or shirt worn with the shorts. "
+        "If some attributes are unclear, omit them."
     ),
     "Tees_Tanks": (
         "This image shows a t-shirt or tank top. "
-        "Describe only the top with these details: "
-        "What style is it? What is the neckline? "
-        "What are the sleeves like? What color is it? "
-        "What pattern does it have? How does it fit? "
-        "Answer as: style: X, neckline: X, sleeves: X, color: X, pattern: X, fit: X"
+        "Describe only the top in one concise sentence using visible fashion attributes "
+        "such as color, neckline, sleeves, pattern, fit, and style. "
+        "If some attributes are unclear, omit them."
     ),
     "Graphic_Tees": (
         "This image shows a graphic t-shirt. "
-        "Describe only the t-shirt with these details: "
-        "What style is it? What graphic or text is printed on it? "
-        "What is the base color of the shirt? How does it fit? "
-        "Answer as: style: X, graphic: X, color: X, fit: X"
+        "Describe only the t-shirt in one concise sentence including the graphic or text on it "
+        "and visible fashion attributes such as color, fit, and style. "
+        "If some attributes are unclear, omit them."
     ),
     "Rompers_Jumpsuits": (
         "This image shows a romper or jumpsuit. "
-        "Describe only the garment with these details: "
-        "Is it a romper or jumpsuit? What is the neckline? "
-        "What are the sleeves like? What color is it? "
-        "What pattern does it have? "
-        "Answer as: silhouette: X, neckline: X, sleeves: X, color: X, pattern: X"
+        "Describe only the garment in one concise sentence using visible fashion attributes "
+        "such as color, neckline, sleeves, pattern, length, and silhouette. "
+        "If some attributes are unclear, omit them."
     ),
     "Leggings": (
         "This image shows a pair of leggings. "
-        "Describe only the leggings and ignore any top or jacket worn with them. "
-        "What is the length? What color are they? "
-        "What pattern do they have? What fabric are they made of? "
-        "What is the waistband like? "
-        "Answer as: length: X, color: X, pattern: X, fabric: X, waistband: X"
+        "Describe only the leggings in one concise sentence using visible fashion attributes "
+        "such as color, length, pattern, fabric, and waistband. "
+        "Do not describe any top or jacket worn with the leggings. "
+        "If some attributes are unclear, omit them."
     ),
     "Sweatshirts_Hoodies": (
         "This image shows a sweatshirt or hoodie. "
-        "Describe only the sweatshirt with these details: "
-        "Is it a hoodie or crewneck sweatshirt? Does it have a hood? "
-        "What color is it? Is there any graphic or logo on it? "
-        "How does it fit? "
-        "Answer as: style: X, hood: X, color: X, graphic: X, fit: X"
+        "Describe only the sweatshirt in one concise sentence using visible fashion attributes "
+        "such as color, style, hood, graphic or logo, and fit. "
+        "If some attributes are unclear, omit them."
     ),
     "Suiting": (
         "This image shows a suit or blazer. "
-        "Describe only the suiting item with these details: "
-        "What style is it? What is the lapel like? "
-        "What color is it? What fabric does it appear to be? "
-        "How does it fit? "
-        "Answer as: style: X, lapel: X, color: X, fabric: X, fit: X"
+        "Describe only the suiting item in one concise sentence using visible fashion attributes "
+        "such as color, style, lapel, fabric, and fit. "
+        "If some attributes are unclear, omit them."
     ),
     "Shirts_Polos": (
         "This image shows a shirt or polo. "
-        "Describe only the shirt with these details: "
-        "What style is it? What is the collar like? "
-        "What are the sleeves like? What color is it? "
-        "What pattern does it have? How does it fit? "
-        "Answer as: style: X, collar: X, sleeves: X, color: X, pattern: X, fit: X"
+        "Describe only the shirt in one concise sentence using visible fashion attributes "
+        "such as color, style, collar, sleeves, pattern, and fit. "
+        "If some attributes are unclear, omit them."
     ),
 }
 
 DEFAULT_PROMPT: str = (
     "This image shows a clothing item. "
-    "Describe only the clothing with these details: "
-    "What type of garment is it? What color is it? "
-    "What pattern does it have? What fabric does it appear to be? "
-    "How does it fit? What are any notable style details? "
-    "Answer as: garment: X, color: X, pattern: X, fabric: X, fit: X, details: X"
+    "Describe only the clothing in one concise sentence using visible fashion attributes "
+    "such as color, style, fit, pattern, fabric, and notable details. "
+    "If some attributes are unclear, omit them."
 )
 
 
 def get_prompt(category: str) -> str:
-    """Return the structured Q&A prompt for a given DeepFashion category folder name."""
+    """Return the sentence-style prompt for a given DeepFashion category."""
     return CATEGORY_PROMPTS.get(category, DEFAULT_PROMPT)
