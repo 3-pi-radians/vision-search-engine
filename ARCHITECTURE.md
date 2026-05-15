@@ -9,7 +9,7 @@
 **Design choices:**
 - Plain Python constants (no dataclass/pydantic) — dead simple to read and edit
 - `KAGGLE = os.path.exists("/kaggle")` flag splits all paths into Kaggle vs local variants — both branches defined in one if/else block
-- `BLIP2_MODEL_NAME` = captioning model (`blip2-flan-t5-xl`); `BLIP2_RERANK_MODEL_NAME` = ITM reranker model (`blip-itm-base-coco`) — kept separate so upgrading one doesn't break the other
+- `BLIP2_MODEL_NAME` = captioning model (`blip2-opt-2.7b`); `BLIP2_RERANK_MODEL_NAME` = ITM reranker model (`blip-itm-base-coco`) — kept separate so each can be upgraded independently
 - `ENABLE_RERANKER = KAGGLE` — auto-disables BLIP-ITM on local machines (~895 MB but still avoids loading on CPU); auto-enables on Kaggle GPU
 - `RERANK_BATCH_SIZE = 4` — controls BLIP-ITM batching to avoid OOM during reranking
 - Ablation configs A/B/C defined as a dict — adding a new config is one line
@@ -122,36 +122,19 @@
 
 ---
 
-## offline/blip2_prompts.py
-**Purpose:** Stores all 17 category-specific BLIP-2 prompts and a default fallback. Kept separate from `config.py` to avoid bloating the config with long strings.
-
-**Design choices:**
-- Keys match DeepFashion folder names exactly (`Blouses_Shirts`, `Denim`, `Shirts_Polos`, etc.) — looked up by `extract_category()` at runtime
-- Covers all unique category folder names in the dataset (14 WOMEN + 9 MEN = 23 slots, 17 unique names)
-- Each prompt: instructs model to ignore the person, focus on the garment, and output `attribute: value, attribute: value` structured format
-- `DEFAULT_PROMPT` catches any unknown/future category gracefully
-
-**Tradeoffs:**
-- Prompt strings are long — separating from `config.py` keeps config readable and prompts independently editable
-
----
-
 ## offline/run_blip2_caption.py
-**Purpose:** Offline step 2. Generates one structured BLIP-2 caption per unique `item_id` from gallery crops using `blip2-flan-t5-xl`, writes `captions.json: {item_id: caption_string}`.
+**Purpose:** Offline step 2. Generates one BLIP-2 caption per unique `item_id` from gallery crops using `blip2-opt-2.7b`, writes `captions.json: {item_id: caption_string}`.
 
 **Design choices:**
-- Model: `blip2-flan-t5-xl` — encoder-decoder with flan-t5 language head; produces richer, more controllable structured output than OPT-based variants
-- Reads source gallery metadata from `IMAGE_PATHS_INPUT` (Kaggle read path) — not the write-path `IMAGE_PATHS_PATH`; output written to `WORK_DIR/captions.json`
-- **Front-view preference:** groups all crops per `item_id`, selects the one with `01_1_front` in filename; falls back to first available — ensures consistent viewpoint across all items
-- **Category extraction:** parses `gallery/WOMEN|MEN/<Category>/` from crop path at runtime; looks up `CATEGORY_PROMPTS` dict from `blip2_prompts.py`; falls back to `DEFAULT_PROMPT` for unknown categories
-- **Generation params** all driven by config: `num_beams=3`, `max_new_tokens=75`, `min_length=10`, `repetition_penalty=1.2`
-- **Post-processing:** `_PERSON_RE` regex strips leading person-reference prefixes ("a woman wearing", "a man in", etc.) before storing; captions under 6 words are logged as warnings but stored as-is (partial caption > missing caption)
-- Output format: structured `"attribute: value, attribute: value"` string — parsing into display badges happens in `streamlit_app.py`, not here
-- Keyed by `item_id` — reranker and eval look up by item_id
+- Model: `blip2-opt-2.7b` — OPT-based language head; runs unconditional image captioning (no text prompt)
+- Reads source gallery metadata from `IMAGE_PATHS_INPUT` (Kaggle read path) — not the write-path `IMAGE_PATHS_PATH`
+- **Deduplication:** one caption per `item_id`; picks the first crop encountered in `image_paths.json`
+- `max_new_tokens=50` — sufficient for a short clothing description
 - Checkpoints every 500 items to survive Kaggle session timeouts; resumable by loading existing `CAPTIONS_PATH`
+- Keyed by `item_id` — reranker and eval look up by item_id
 
 **Tradeoffs:**
-- Per-item prompts differ across a batch — processor handles padding to longest prompt, slight throughput reduction vs uniform prompts; `CAPTION_BATCH_SIZE=4` mitigates VRAM pressure
+- No category-specific prompting — model generates whatever it sees; captions may include person descriptions ("a woman wearing...")
 - One caption per item (not per image) keeps `captions.json` compact and avoids redundancy at query time
 
 ---
