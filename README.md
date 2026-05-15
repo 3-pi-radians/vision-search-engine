@@ -217,13 +217,13 @@ python eval.py --config C
 Evaluated on the DeepFashion In-Shop Clothes Retrieval benchmark.  
 Gallery: 12,612 images · 3,985 unique items · Query set: 14,218 images
 
-| Config                     | R@5 | R@10 | R@15 | NDCG@5 | NDCG@10 | NDCG@15 | mAP@5 | mAP@10 | mAP@15 |
-| -------------------------- | --- | ---- | ---- | ------ | ------- | ------- | ----- | ------ | ------ |
-| A (pretrained, image only) | —   | —    | —    | —      | —       | —       | —     | —      | —      |
-| B (pretrained + captions)  | —   | —    | —    | —      | —       | —       | —     | —      | —      |
-| C (fine-tuned + captions)  | —   | —    | —    | —      | —       | —       | —     | —      | —      |
+| Config                     | R@5    | R@10   | R@15   | NDCG@5 | NDCG@10 | NDCG@15 | mAP@5  | mAP@10 | mAP@15 |
+| -------------------------- | ------ | ------ | ------ | ------ | ------- | ------- | ------ | ------ | ------ |
+| A (pretrained, image only) | 0.2392 | 0.2925 | 0.3259 | 0.2896 | 0.2950  | 0.3039  | 0.2189 | 0.2112 | 0.2124 |
+| B (pretrained + captions)  | 0.2359 | 0.2907 | 0.3250 | 0.2841 | 0.2903  | 0.2996  | 0.2147 | 0.2073 | 0.2088 |
+| C (fine-tuned + captions)  | 0.5909 | 0.6820 | 0.7273 | 0.6829 | 0.6916  | 0.7035  | 0.6095 | 0.6011 | 0.6051 |
 
-_Fill in after running eval.py_
+_Config C evaluated on 14,218 queries (reranker disabled for eval speed)_
 
 ---
 
