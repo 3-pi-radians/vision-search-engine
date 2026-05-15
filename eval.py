@@ -56,47 +56,48 @@ def retrieve(crop_bytes: bytes, config_name: str, timeout: int = 60) -> list[dic
 # Metric helpers
 # ---------------------------------------------------------------------------
 
-def recall_at_k(ranked_item_ids: list[str], relevant: set[str], k: int) -> float:
-    if not relevant:
+def recall_at_k(ranked_item_ids: list[str], query_item_id: str, relevant_count: int, k: int) -> float:
+    if not relevant_count:
         return 0.0
-    hits = sum(1 for iid in ranked_item_ids[:k] if iid in relevant)
-    return hits / len(relevant)
+    hits = sum(1 for iid in ranked_item_ids[:k] if iid == query_item_id)
+    return min(hits / relevant_count, 1.0)
 
 
-def ndcg_at_k(ranked_item_ids: list[str], relevant: set[str], k: int) -> float:
-    if not relevant:
+def ndcg_at_k(ranked_item_ids: list[str], query_item_id: str, relevant_count: int, k: int) -> float:
+    if not relevant_count:
         return 0.0
     dcg = sum(
         1.0 / math.log2(i + 2)
         for i, iid in enumerate(ranked_item_ids[:k])
-        if iid in relevant
+        if iid == query_item_id
     )
-    ideal_hits = min(len(relevant), k)
+    ideal_hits = min(relevant_count, k)
     idcg = sum(1.0 / math.log2(i + 2) for i in range(ideal_hits))
     return dcg / idcg if idcg > 0 else 0.0
 
 
-def ap_at_k(ranked_item_ids: list[str], relevant: set[str], k: int) -> float:
-    if not relevant:
+def ap_at_k(ranked_item_ids: list[str], query_item_id: str, relevant_count: int, k: int) -> float:
+    if not relevant_count:
         return 0.0
     hits, precision_sum = 0, 0.0
     for i, iid in enumerate(ranked_item_ids[:k]):
-        if iid in relevant:
+        if iid == query_item_id:
             hits += 1
             precision_sum += hits / (i + 1)
-    return precision_sum / min(len(relevant), k)
+    return precision_sum / min(relevant_count, k)
 
 
 # ---------------------------------------------------------------------------
 # Build ground truth from image_paths.json
 # ---------------------------------------------------------------------------
 
-def build_ground_truth(image_paths: dict[int, dict]) -> dict[str, set[str]]:
-    """item_id → set of gallery item_ids that are the same item (i.e., {item_id})."""
-    # In DeepFashion retrieval, the relevant set for a query is all gallery images
-    # with the same item_id.  Since item_ids are the key, gt[item_id] = {item_id}.
-    item_ids = {v["item_id"] for v in image_paths.values()}
-    return {iid: {iid} for iid in item_ids}
+def build_ground_truth(image_paths: dict[int, dict]) -> dict[str, int]:
+    """item_id → number of gallery images with that item_id."""
+    from collections import defaultdict
+    counts: dict[str, int] = defaultdict(int)
+    for v in image_paths.values():
+        counts[v["item_id"]] += 1
+    return dict(counts)
 
 
 # ---------------------------------------------------------------------------
@@ -188,7 +189,7 @@ def evaluate(
     for q_idx, query in enumerate(queries):
         q_path = Path(query["path"])
         q_item_id = query["item_id"]
-        relevant = gt.get(q_item_id, set())
+        relevant_count = gt.get(q_item_id, 1)
 
         if not q_path.exists():
             logger.warning("Query image not found, skipping: %s", q_path)
@@ -223,9 +224,9 @@ def evaluate(
         ranked_ids = [r["item_id"] for r in results[:max_k]]
 
         for k in k_values:
-            accumulators[f"recall@{k}"].append(recall_at_k(ranked_ids, relevant, k))
-            accumulators[f"ndcg@{k}"].append(ndcg_at_k(ranked_ids, relevant, k))
-            accumulators[f"map@{k}"].append(ap_at_k(ranked_ids, relevant, k))
+            accumulators[f"recall@{k}"].append(recall_at_k(ranked_ids, q_item_id, relevant_count, k))
+            accumulators[f"ndcg@{k}"].append(ndcg_at_k(ranked_ids, q_item_id, relevant_count, k))
+            accumulators[f"map@{k}"].append(ap_at_k(ranked_ids, q_item_id, relevant_count, k))
 
         if (q_idx + 1) % 50 == 0:
             logger.info("  %d / %d queries done (%d skipped)", q_idx + 1, len(queries), skipped)
