@@ -1,12 +1,10 @@
-# Fashion-specific YOLO detector
-# Model: NovaAstro/YOLOv8m_fashion
-# Detects individual clothing items: top, bottom, dress,
-# outerwear, skirt, shorts
-# Replaces temporary upper/lower body split (Option 1)
+# Custom YOLO detector — Project 1 fine-tuned weights
+# Weights: yolov8s_prj1.pt
+# Classes: short_sleeve_top, trousers, shorts, long_sleeve_top, skirt
+# Use this detector for images similar to Project 1 training data
 
 import logging
 
-from huggingface_hub import hf_hub_download
 from PIL import Image
 from ultralytics import YOLO
 
@@ -15,32 +13,16 @@ from detectors.base_detector import BaseDetector, DetectionResult, MAX_DETECTION
 
 logger = logging.getLogger(__name__)
 
-_MODEL_REPO     = "NovaAstro/YOLOv8m_fashion"
-_MODEL_FILENAME = "model_with_updated_labels.pt"
-# Main garment classes only — excludes sub-part detections (sleeve, pocket, zipper, etc.)
-_GARMENT_CLASSES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 22, 23]
 
-
-class FashionYOLODetector(BaseDetector):
-    def __init__(
-        self,
-        repo: str = _MODEL_REPO,
-        filename: str = _MODEL_FILENAME,
-        classes: list[int] | None = _GARMENT_CLASSES,
-    ) -> None:
-        weights = hf_hub_download(repo, filename=filename)
-        self._model = YOLO(weights)
-        self._classes = classes
-        logger.info("FashionYOLODetector loaded: %s", repo)
+class CustomYOLODetector(BaseDetector):
+    def __init__(self) -> None:
+        self._model = YOLO(str(config.CUSTOM_YOLO_WEIGHTS_PATH))
+        logger.info("CustomYOLODetector loaded: %s", config.CUSTOM_YOLO_WEIGHTS_PATH)
 
     def detect(self, image: Image.Image) -> DetectionResult:
         w, h = image.size
 
-        results = self._model(
-            image, verbose=False,
-            conf=config.YOLO_CONF_THRESHOLD,
-            classes=self._classes,
-        )
+        results = self._model(image, verbose=False, conf=config.YOLO_CONF_THRESHOLD)
 
         boxes = []
         for result in results:
@@ -56,7 +38,7 @@ class FashionYOLODetector(BaseDetector):
             boxes = boxes[:MAX_DETECTIONS]
 
         if not boxes:
-            logger.debug("FashionYOLO fallback: no detections above threshold %.3f", config.YOLO_CONF_THRESHOLD)
+            logger.debug("CustomYOLO fallback: no detections above threshold %.3f", config.YOLO_CONF_THRESHOLD)
             return DetectionResult(
                 crops=[image],
                 bboxes=[(0, 0, w, h)],
@@ -95,8 +77,8 @@ class FashionYOLODetector(BaseDetector):
 if __name__ == "__main__":
     import numpy as np
 
-    print("=== fashion_yolo_detector.py smoke test ===")
-    detector = FashionYOLODetector()
+    print("=== custom_yolo_detector.py smoke test ===")
+    detector = CustomYOLODetector()
     dummy = Image.fromarray(np.zeros((640, 640, 3), dtype=np.uint8))
     result = detector.detect(dummy)
     print(f"used_fallback  : {result.used_fallback}")
