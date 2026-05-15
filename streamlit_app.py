@@ -96,11 +96,12 @@ def render_caption_tags(caption):
     return f'<div style="margin-top:5px;line-height:2;">{badges}</div>'
 
 
-def api_crop(image_bytes):
+def api_crop(image_bytes, detector="fashion"):
     try:
         resp = requests.post(
             f"{API_BASE}/crop",
             files={"file": ("upload.jpg", image_bytes, "image/jpeg")},
+            data={"detector_name": detector},
             timeout=30,
         )
         resp.raise_for_status()
@@ -168,6 +169,7 @@ def inject_css(dark):
 
 *,*::before,*::after{{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;box-sizing:border-box;}}
 .material-symbols-rounded,.material-symbols-outlined,.material-symbols-sharp,.material-icons{{font-family:'Material Symbols Rounded','Material Symbols Outlined','Material Symbols Sharp','Material Icons'!important;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;font-feature-settings:normal;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;}}
+[data-testid="collapsedControl"] *{{font-family:'Material Symbols Rounded','Material Symbols Outlined','Material Symbols Sharp','Material Icons'!important;}}
 :root{{--bg:{bg};--bg2:{bg2};--card:{card};--sb:{sb};--tpri:{tpri};--tsec:{tsec};--tmut:{tmut};--brd:{brd};--acl:{acl};--shd:{shd};--shdh:{shdh};--acc:#7C3AED;}}
 
 .stApp{{background:{bg}!important;}}
@@ -190,7 +192,7 @@ p,li{{color:{tpri};}}
 [data-testid="stFileUploaderDropzone"] p{{color:{tsec}!important;font-size:0.85rem!important;}}
 [data-testid="stFileUploaderDropzone"] button{{background:linear-gradient(135deg,#7C3AED,#9333EA)!important;color:#fff!important;border:none!important;border-radius:8px!important;font-weight:700!important;transform:none!important;white-space:nowrap!important;width:auto!important;padding:0.4rem 1.2rem!important;}}
 [data-testid="stFileUploaderDropzone"] button:hover{{background:linear-gradient(135deg,#6D28D9,#7C3AED)!important;transform:none!important;box-shadow:none!important;}}
-[data-testid="stFileUploaderDropzone"] button p{{color:#fff!important;font-size:0.875rem!important;}}
+[data-testid="stFileUploaderDropzone"] button *{{color:#fff!important;font-size:0.875rem!important;}}
 
 [data-testid="stImage"] img{{border-radius:12px!important;width:100%!important;object-fit:cover!important;transition:transform 0.22s ease,box-shadow 0.22s ease!important;display:block!important;}}
 [data-testid="stImage"] img:hover{{transform:scale(1.015)!important;box-shadow:0 8px 32px rgba(0,0,0,0.18)!important;}}
@@ -331,6 +333,20 @@ with st.sidebar:
         )
 
     top_k = st.select_slider("Results to show", options=[5, 10, 15, 20], value=10, key="top_k")
+
+    st.markdown('<span class="sidebar-label">Detector</span>', unsafe_allow_html=True)
+    st.radio(
+        "Online crop detector",
+        options=["fashion", "yolov8m", "custom"],
+        captions=[
+            "Fashion YOLO — tops, bottoms, dresses",
+            "YOLOv8m — person bbox, studio images",
+            "Custom — Project 1 fine-tuned weights",
+        ],
+        index=0,
+        key="detector",
+        label_visibility="collapsed",
+    )
 
     st.divider()
     st.markdown('<span class="sidebar-label">Models</span>', unsafe_allow_html=True)
@@ -482,7 +498,7 @@ with tab_search:
             if st.button(btn_label, key="btn_detect"):
                 t0 = time.time()
                 with st.spinner("Detecting clothing items..."):
-                    crop_data = api_crop(image_bytes)
+                    crop_data = api_crop(image_bytes, detector=st.session_state.get("detector", "fashion"))
                 if crop_data:
                     crops = crop_data.get("crops", [])
                     st.session_state["crops"] = crops
@@ -689,7 +705,7 @@ with tab_compare:
             if "cmp_crops" not in st.session_state:
                 if st.button("Detect & Compare all configs", key="btn_cmp_detect"):
                     with st.spinner("Detecting clothing..."):
-                        crop_data = api_crop(cmp_bytes)
+                        crop_data = api_crop(cmp_bytes, detector=st.session_state.get("detector", "fashion"))
                     if crop_data:
                         crops = crop_data.get("crops", [])
                         st.session_state["cmp_crops"] = crops
@@ -754,13 +770,10 @@ with tab_compare:
                         if not img_path.exists():
                             raise FileNotFoundError
                         pil_img = Image.open(str(img_path)).convert("RGB")
-                        scale = 400 / pil_img.width
-                        new_h = int(pil_img.height * scale)
-                        pil_img = pil_img.resize((400, new_h), Image.LANCZOS)
-                        if new_h > 280:
-                            top = (new_h - 280) // 2
-                            pil_img = pil_img.crop((0, top, 400, top + 280))
-                        st.image(pil_img, use_container_width=True)
+                        pil_img.thumbnail((400, 280), Image.LANCZOS)
+                        canvas = Image.new("RGB", (400, 280), (255, 255, 255))
+                        canvas.paste(pil_img, ((400 - pil_img.width) // 2, (280 - pil_img.height) // 2))
+                        st.image(canvas, use_container_width=True)
                     except Exception:
                         st.markdown(
                             '<div style="height:280px;background:var(--bg2);border-radius:10px 10px 0 0;'

@@ -50,9 +50,11 @@ HNSW_INDEX_PATHS = {
 # ---------------------------------------------------------------------------
 # YOLO detector
 # ---------------------------------------------------------------------------
-DETECTOR            = "yolov8m"
-YOLO_CONF_THRESHOLD = 0.4
-YOLO_MAX_DETECTIONS = 5
+AVAILABLE_DETECTORS      = ["fashion", "yolov8m", "custom"]
+DETECTOR                 = "fashion"
+YOLO_CONF_THRESHOLD      = 0.4
+YOLO_MAX_DETECTIONS      = 5
+CUSTOM_YOLO_WEIGHTS_PATH = Path("yolov8s_prj1.pt")
 
 # ---------------------------------------------------------------------------
 # BLIP-2 captioning (offline — run_blip2_caption.py)

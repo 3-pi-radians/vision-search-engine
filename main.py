@@ -132,9 +132,13 @@ def bytes_to_pil(data: bytes) -> Image.Image:
 # ---------------------------------------------------------------------------
 
 @app.post("/crop", response_model=CropResponse)
-async def crop_endpoint(file: Annotated[UploadFile, File()]):
+async def crop_endpoint(
+    file: Annotated[UploadFile, File()],
+    detector_name: str = Form(default=config.DETECTOR),
+):
     """
     Accept an uploaded image, run YOLO detection, return up to 5 crops.
+    Optional form field 'detector' selects the detector at runtime.
     """
     image_data = await file.read()
     try:
@@ -142,7 +146,13 @@ async def crop_endpoint(file: Annotated[UploadFile, File()]):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid image: {e}")
 
-    result = state.detector.detect(image)
+    try:
+        detector = DetectorFactory.get(detector_name)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Detector '{detector_name}' unavailable: {e}")
+    result = detector.detect(image)
 
     crops = []
     for i, (crop, bbox, conf) in enumerate(
