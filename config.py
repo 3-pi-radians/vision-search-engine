@@ -63,7 +63,7 @@ CAPTION_BATCH_SIZE       = 8
 # BLIP-ITM reranker (online — reranker.py) — separate smaller model, purpose-built for scoring
 BLIP2_RERANK_MODEL_NAME  = "Salesforce/blip-itm-base-coco"
 RERANK_BATCH_SIZE        = 4
-ENABLE_RERANKER          = False  # temporarily disabled for eval speed
+ENABLE_RERANKER          = KAGGLE
 
 # ---------------------------------------------------------------------------
 # CLIP
