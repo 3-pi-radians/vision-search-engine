@@ -190,9 +190,10 @@ p,li{{color:{tpri};}}
 [data-testid="stFileUploaderDropzone"]{{background:{card}!important;border:2px dashed {brd}!important;border-radius:16px!important;padding:1rem!important;transition:border-color 0.25s ease,background 0.25s ease!important;}}
 [data-testid="stFileUploaderDropzone"]:hover{{border-color:#7C3AED!important;background:{acl}!important;}}
 [data-testid="stFileUploaderDropzone"] p{{color:{tsec}!important;font-size:0.85rem!important;}}
-[data-testid="stFileUploaderDropzone"] button{{background:linear-gradient(135deg,#7C3AED,#9333EA)!important;color:#fff!important;border:none!important;border-radius:8px!important;font-weight:700!important;transform:none!important;white-space:nowrap!important;width:auto!important;padding:0.4rem 1.2rem!important;}}
+[data-testid="stFileUploaderDropzone"] button{{background:linear-gradient(135deg,#7C3AED,#9333EA)!important;color:#fff!important;border:none!important;border-radius:8px!important;font-weight:700!important;transform:none!important;white-space:nowrap!important;width:auto!important;padding:0.4rem 1.2rem!important;font-size:0!important;}}
 [data-testid="stFileUploaderDropzone"] button:hover{{background:linear-gradient(135deg,#6D28D9,#7C3AED)!important;transform:none!important;box-shadow:none!important;}}
-[data-testid="stFileUploaderDropzone"] button *{{color:#fff!important;font-size:0.875rem!important;}}
+[data-testid="stFileUploaderDropzone"] button *{{color:#fff!important;font-size:0.875rem!important;font-weight:700!important;}}
+[data-testid="stFileUploaderDropzone"] button span{{font-family:'Material Symbols Rounded','Material Symbols Outlined','Material Symbols Sharp','Material Icons'!important;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;font-feature-settings:normal;}}
 
 [data-testid="stImage"] img{{border-radius:12px!important;width:100%!important;object-fit:cover!important;transition:transform 0.22s ease,box-shadow 0.22s ease!important;display:block!important;}}
 [data-testid="stImage"] img:hover{{transform:scale(1.015)!important;box-shadow:0 8px 32px rgba(0,0,0,0.18)!important;}}
@@ -682,7 +683,10 @@ with tab_compare:
         label_visibility="collapsed",
     )
 
-    if cmp_uploaded is not None:
+    if cmp_uploaded is None and st.session_state.get("cmp_name"):
+        for _k in ["cmp_bytes", "cmp_bytes_raw", "cmp_crops", "cmp_results", "cmp_name", "cmp_annotated"]:
+            st.session_state.pop(_k, None)
+    elif cmp_uploaded is not None:
         cmp_bytes = cmp_uploaded.read()
         if cmp_bytes != st.session_state.get("cmp_bytes_raw"):
             st.session_state["cmp_bytes_raw"] = cmp_bytes
@@ -695,7 +699,12 @@ with tab_compare:
         cmp_bytes = st.session_state["cmp_bytes"]
         c_img, c_info = st.columns([1, 2])
         with c_img:
-            st.image(st.session_state.get("cmp_annotated", cmp_bytes), use_container_width=True)
+            _cmp_display = st.session_state.get("cmp_annotated", cmp_bytes)
+            _cmp_preview = Image.open(io.BytesIO(_cmp_display)).convert("RGB")
+            _cmp_preview.thumbnail((400, 400), Image.LANCZOS)
+            _cmp_canvas = Image.new("RGB", (400, 400), (255, 255, 255))
+            _cmp_canvas.paste(_cmp_preview, ((400 - _cmp_preview.width) // 2, (400 - _cmp_preview.height) // 2))
+            st.image(_cmp_canvas, use_container_width=True)
         with c_info:
             cmp_name = st.session_state.get("cmp_name", "image")
             st.markdown(
@@ -721,7 +730,11 @@ with tab_compare:
                         ci_img = b64_to_pil(cr["image_b64"])
                         color  = BBOX_COLORS[i % len(BBOX_COLORS)]
                         with crop_cols[i]:
-                            st.image(ci_img, use_container_width=True)
+                            _thumb = ci_img.convert("RGB").copy()
+                            _thumb.thumbnail((300, 200), Image.LANCZOS)
+                            _canvas = Image.new("RGB", (300, 200), (255, 255, 255))
+                            _canvas.paste(_thumb, ((300 - _thumb.width) // 2, (200 - _thumb.height) // 2))
+                            st.image(_canvas, use_container_width=True)
                             st.markdown(
                                 f'<div style="text-align:center;font-size:0.72em;font-weight:800;color:{color};margin:3px 0 5px;">#{i+1} {cr["confidence"]:.0%}</div>',
                                 unsafe_allow_html=True,

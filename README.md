@@ -59,14 +59,17 @@ vision-search-engine/
 │   └── run_build_index.py         # Step 4 — HNSW index build
 ├── detectors/
 │   ├── base_detector.py           # Abstract detector interface
-│   ├── yolov8_detector.py         # YOLOv8s implementation
-│   └── detector_factory.py        # Plug-and-play factory
+│   ├── yolov8_detector.py         # YOLOv8m — person bbox (studio shots)
+│   ├── fashion_yolo_detector.py   # NovaAstro/YOLOv8m_fashion — garment-level crops
+│   ├── custom_yolo_detector.py    # Project 1 fine-tuned YOLOv8s (yolov8s_prj1.pt)
+│   └── detector_factory.py        # Plug-and-play factory with per-name instance cache
 ├── clip_encoder.py                # Fused embedding (image + text)
 ├── hnsw_search.py                 # HNSW nearest-neighbor search
 ├── reranker.py                    # BLIP-2 ITM re-ranking
 ├── image_fetcher.py               # item_id → image path lookup
 ├── main.py                        # FastAPI app + endpoints
 ├── streamlit_app.py               # Streamlit UI
+├── yolov8s_prj1.pt                # Custom detector weights (Project 1 fine-tune)
 └── eval.py                        # Standalone batch evaluation
 ```
 
@@ -169,15 +172,25 @@ uvicorn main:app --host 0.0.0.0 --port 8504 --reload
 **POST /crop**
 
 ```
-Input:  multipart image upload
-Output: {bbox, confidence, crop_b64, detections[]}
+Input:  multipart/form-data
+          file          — image upload
+          detector_name — "fashion" | "yolov8m" | "custom" (default: config.DETECTOR)
+Output: {
+          crops: [{index, bbox, confidence, image_b64}, ...],
+          used_fallback: bool
+        }
 ```
 
 **POST /retrieve**
 
 ```
-Input:  {crop_b64, config: "A"|"B"|"C", alpha: float}
-Output: [{item_id, image_path, score}, ...]
+Input:  multipart/form-data
+          file        — cropped image
+          config_name — "A" | "B" | "C"
+Output: {
+          config_name: str,
+          results: [{rank, label, item_id, caption, path, score}, ...]
+        }
 ```
 
 ---
@@ -192,11 +205,19 @@ The UI runs at `http://localhost:8502`. Make sure the FastAPI server is running 
 
 ### UI Flow
 
-1. Select ablation config (A / B / C) and alpha slider
+1. Select ablation config (A / B / C) and choose a crop detector from the sidebar
 2. Upload a clothing image
-3. Confirm or reject the YOLO crop (if multiple items detected, select one)
+3. Confirm or reject the detector crop (if multiple items detected, select one)
 4. View top-K results with item IDs and structured attribute tags
-5. Optionally run batch evaluation mode
+5. Switch to **Compare Configs** tab to run all three ablation configs side-by-side
+
+### Detectors
+
+| Detector | Model                          | Best for                          |
+| -------- | ------------------------------ | --------------------------------- |
+| fashion  | NovaAstro/YOLOv8m_fashion      | Lifestyle/editorial shots (default) |
+| yolov8m  | YOLOv8m (person class)         | Clean studio shots, single model  |
+| custom   | YOLOv8s — Project 1 fine-tuned | 5 garment classes from fine-tune  |
 
 ---
 
@@ -233,7 +254,8 @@ _Config C evaluated on 14,218 queries (reranker disabled for eval speed)_
 | ---------------------------- | ----------------------------------------------------------------------- |
 | Single FastAPI process       | Avoids inter-service overhead — modularization achieves same separation |
 | No database                  | All storage fits in memory as Python dicts + binary index               |
-| Plug-and-play detector       | Strategy pattern via BaseDetector — swap any YOLO variant in config.py  |
+| Plug-and-play detector       | Strategy pattern via BaseDetector — swap any YOLO variant at runtime    |
+| Runtime detector switching   | `detector_name` form field + per-name factory cache — no server restart needed to change detector |
 | Full image fallback          | Pipeline never errors on failed YOLO detection                          |
 | Pre-stored captions          | BLIP-2 runs offline — no per-query caption generation at runtime        |
 | Read-only storage at runtime | Eliminates concurrency issues for 2–3 simultaneous users                |

@@ -13,6 +13,9 @@
 - `ENABLE_RERANKER = KAGGLE` — auto-disables BLIP-ITM on local machines (~895 MB but still avoids loading on CPU); auto-enables on Kaggle GPU
 - `RERANK_BATCH_SIZE = 4` — controls BLIP-ITM batching to avoid OOM during reranking
 - Ablation configs A/B/C defined as a dict — adding a new config is one line
+- `DETECTOR = "fashion"` — default detector; overridable at runtime via API form field or Streamlit sidebar
+- `AVAILABLE_DETECTORS = ["fashion", "yolov8m", "custom"]` — allowlist surfaced in the UI radio
+- `CUSTOM_YOLO_WEIGHTS_PATH = Path("yolov8s_prj1.pt")` — path to Project 1 fine-tuned weights loaded by `CustomYOLODetector`
 
 **Tradeoffs:**
 - No validation of paths at import time (avoids side effects); scripts check existence themselves
@@ -32,27 +35,59 @@
 ---
 
 ## detectors/yolov8_detector.py
-**Purpose:** Concrete YOLOv8 implementation of `BaseDetector`. Runs inference, returns top-N crops sorted by confidence, falls back to full image if nothing meets the threshold.
+**Purpose:** Person-detection detector using YOLOv8m. Used for studio shots where a single person bbox is the expected output. Falls back to the full image if no person is found above threshold.
 
 **Design choices:**
-- Model loaded once in `__init__`, never per-call
-- Capped at `MAX_DETECTIONS`; if >5 boxes detected, collapses to top-1 (likely over-detection)
+- `classes=[0]` — restricts YOLO to the person class; avoids spurious object detections on accessories
+- `iou=0.4` — relaxed NMS threshold to avoid collapsing overlapping person crops in crowded lookbook shots
+- Confidence threshold: `config.YOLO_CONF_THRESHOLD = 0.4`
+- Detections sorted by confidence descending, capped at `MAX_DETECTIONS`
+- Min-area filter: crops smaller than 5% of image area are discarded (likely background noise)
 - Bbox coords clamped to image bounds to prevent invalid crops
+- Model loaded once in `__init__`, never per-call
 
 **Tradeoffs:**
-- YOLOv8s chosen (small) — fast on CPU, sufficient for fashion detection
+- Person bbox is a loose crop for fashion retrieval — `FashionYOLODetector` returns tighter garment-level crops; `yolov8m` is best for clean studio images
+
+---
+
+## detectors/fashion_yolo_detector.py
+**Purpose:** Garment-level detector using `NovaAstro/YOLOv8m_fashion` (46 classes). Returns tight crops of individual clothing items — tops, bottoms, dresses, outerwear, skirts, shorts. Best detector for multi-item or lifestyle shots.
+
+**Design choices:**
+- Weights downloaded from HuggingFace Hub via `hf_hub_download` at first init; cached locally by HF thereafter
+- `_GARMENT_CLASSES = [0..11, 22, 23]` — filters to 14 relevant garment classes, excludes shoes/bags/accessories
+- Confidence threshold: `config.YOLO_CONF_THRESHOLD = 0.4`; min-area filter 3% of image area
+- Falls back to full image if no garment detected above threshold
+
+**Tradeoffs:**
+- `hf_hub_download` adds a network round-trip on first load; unavoidable for HuggingFace-hosted weights
+
+---
+
+## detectors/custom_yolo_detector.py
+**Purpose:** Fine-tuned YOLOv8s detector trained on Project 1 data. Detects 5 classes: short_sleeve_top, long_sleeve_top, trousers, shorts, skirt. Local weights from `yolov8s_prj1.pt`.
+
+**Design choices:**
+- Loads weights from `config.CUSTOM_YOLO_WEIGHTS_PATH` — path is configurable without touching this file
+- No class filtering (`classes=None`) — model was trained on only 5 relevant garment classes
+- Same confidence threshold and min-area filter as other detectors for consistency
+
+**Tradeoffs:**
+- Narrower class set than `FashionYOLODetector`; stronger recall on the specific garment types it was trained on
 
 ---
 
 ## detectors/detector_factory.py
-**Purpose:** Single entry point to instantiate any detector by name. Decouples the codebase from concrete detector classes.
+**Purpose:** Single entry point to instantiate any detector by name. Decouples the codebase from concrete detector classes. Supports runtime detector switching per request.
 
 **Design choices:**
-- Registry dict over if/elif chain — adding a new detector is one line
-- Singleton pattern — `DetectorFactory.get()` always returns the same instance, preventing double model loads
+- Lambda registry dict — adding a new detector is one line; lambdas defer imports until first use
+- Per-name instance cache (`_instances[key]`) — each named detector is loaded once and reused; multiple detectors can coexist in memory simultaneously (needed for runtime switching)
+- `_register()` called lazily on first `get()` call — avoids circular import at module load time
 
 **Tradeoffs:**
-- Singleton means detector config is fixed at first call; acceptable since detector is set via `config.DETECTOR`
+- All instantiated detectors stay in memory for the process lifetime; with three detectors this is acceptable (~300–700 MB total across all three)
 
 ---
 
@@ -173,6 +208,8 @@
 **Design choices:**
 - FastAPI lifespan for clean startup/shutdown — models never loaded inside request handlers
 - `POST /crop` returns base64-encoded JPEG crops — no temp files, stateless
+  - `detector_name` form field (default: `config.DETECTOR`) — allows runtime detector selection per request
+  - Returns 400 for unknown detector names, 503 if the detector fails to load
 - `POST /retrieve` pipeline: encode → HNSW search (top-50) → fetch metadata → rerank → return top-15
 - `config_name` passed as form field alongside the crop image
 - CORS middleware enabled for Streamlit ↔ FastAPI communication
@@ -185,21 +222,21 @@
 ---
 
 ## streamlit_app.py
-**Purpose:** Streamlit frontend. Two tabs: (1) Search — upload image → YOLO crop picker → retrieve results grid; (2) Batch Eval — launches `eval.py` subprocess and displays metrics.
+**Purpose:** Streamlit frontend. Two tabs: (1) Search — upload image → detector crop picker → retrieve results grid; (2) Compare Configs — same flow run against configs A, B, C simultaneously for side-by-side comparison.
 
 **Design choices:**
 - All API calls go through `api_crop()` / `api_retrieve()` helpers — single place to change API_BASE
+- `api_crop(image_bytes, detector)` passes `detector_name` to `/crop` — detector is selected via a sidebar radio and forwarded per call
 - Crop picker shows all ≤5 crops side-by-side; user clicks "Use crop #N" to set `session_state["selected_crop_idx"]`
 - Results grid: 5 columns per row, reads image directly from `ResultItem.path`; gracefully shows placeholder div if path is missing
+- All result images displayed using PIL contain canvas (white letterbox) — `thumbnail` + `Image.new("RGB", (W,H), (255,255,255))` + `paste` — prevents distortion at fixed grid dimensions
 - **Caption display:** `render_caption_tags()` parses structured `"attr: value, attr: value"` captions into inline badge pills (values only, max 6); falls back to plain italic text for old-format captions without `:`; uses `html.escape()` to prevent injection
 - **Stale state clearing:** session state keys `crop_data`, `selected_crop_idx`, `results_data`, `search_elapsed` are wiped when a new filename is detected or the uploader is cleared
-- Batch eval launches `eval.py` via subprocess so the Streamlit process never blocks on long eval loops
-- Attempts to parse a JSON block from eval stdout for structured metric display
+- Sidebar detector radio exposes `AVAILABLE_DETECTORS` with one-line captions describing each model's intended use
 
 **Tradeoffs:**
-- subprocess approach for eval means no live progress bar; acceptable since eval is a one-shot operation
 - Images shown from local `path` — works on Kaggle notebooks; on a remote deployment the images won't be accessible (would need a `/image` endpoint)
-- Score bar uses rank-based proxy (rank 1 ≈ 100%, rank 15 ≈ 9%) since the API response does not return raw similarity scores
+- Compare Configs tab runs three sequential API calls — no parallelism; latency triples but keeps code simple
 
 ---
 
