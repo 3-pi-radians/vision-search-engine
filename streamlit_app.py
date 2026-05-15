@@ -190,6 +190,7 @@ p,li{{color:{tpri};}}
 [data-testid="stFileUploaderDropzone"] p{{color:{tsec}!important;font-size:0.85rem!important;}}
 [data-testid="stFileUploaderDropzone"] button{{background:linear-gradient(135deg,#7C3AED,#9333EA)!important;color:#fff!important;border:none!important;border-radius:8px!important;font-weight:700!important;transform:none!important;white-space:nowrap!important;width:auto!important;padding:0.4rem 1.2rem!important;}}
 [data-testid="stFileUploaderDropzone"] button:hover{{background:linear-gradient(135deg,#6D28D9,#7C3AED)!important;transform:none!important;box-shadow:none!important;}}
+[data-testid="stFileUploaderDropzone"] button p{{color:#fff!important;font-size:0.875rem!important;}}
 
 [data-testid="stImage"] img{{border-radius:12px!important;width:100%!important;object-fit:cover!important;transition:transform 0.22s ease,box-shadow 0.22s ease!important;display:block!important;}}
 [data-testid="stImage"] img:hover{{transform:scale(1.015)!important;box-shadow:0 8px 32px rgba(0,0,0,0.18)!important;}}
@@ -440,7 +441,11 @@ with tab_search:
 
         with col_img:
             display_bytes = st.session_state.get("annotated_bytes", image_bytes)
-            st.image(display_bytes, use_container_width=True)
+            _preview = Image.open(io.BytesIO(display_bytes)).convert("RGB")
+            _preview.thumbnail((400, 400), Image.LANCZOS)
+            _pcanvas = Image.new("RGB", (400, 400), (255, 255, 255))
+            _pcanvas.paste(_preview, ((400 - _preview.width) // 2, (400 - _preview.height) // 2))
+            st.image(_pcanvas, use_container_width=True)
 
         with col_meta:
             filename = st.session_state.get("last_uploaded_filename", "image")
