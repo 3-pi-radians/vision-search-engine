@@ -49,7 +49,8 @@ class Reranker:
                     caption,
                     return_tensors="pt",
                 ).to(self._device)
-                itm_score = self._model(**inputs)[0].item()
+                itm_output = self._model(**inputs)[0]  # shape [batch, 2]
+                itm_score = itm_output[0][1].item()    # index 1 = positive match score
                 scores.append(itm_score)
 
         return scores
