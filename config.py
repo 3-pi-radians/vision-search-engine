@@ -50,7 +50,7 @@ HNSW_INDEX_PATHS = {
 # ---------------------------------------------------------------------------
 # YOLO detector
 # ---------------------------------------------------------------------------
-DETECTOR            = "yolov8m"
+DETECTOR            = "fashion"
 YOLO_CONF_THRESHOLD = 0.4
 YOLO_MAX_DETECTIONS = 5
 

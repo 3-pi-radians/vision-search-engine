@@ -5,16 +5,18 @@ from detectors.base_detector import BaseDetector
 
 logger = logging.getLogger(__name__)
 
-_REGISTRY: dict[str, type[BaseDetector]] = {}
+_REGISTRY: dict[str, callable] = {}
 
 
 def _register():
     from detectors.yolov8_detector import YOLOv8Detector
-    _REGISTRY["yolov8n"] = YOLOv8Detector
-    _REGISTRY["yolov8s"] = YOLOv8Detector
-    _REGISTRY["yolov8m"] = YOLOv8Detector
-    _REGISTRY["yolov8l"] = YOLOv8Detector
-    _REGISTRY["yolov8x"] = YOLOv8Detector
+    from detectors.fashion_yolo_detector import FashionYOLODetector
+    _REGISTRY["yolov8n"] = lambda: YOLOv8Detector("yolov8n")
+    _REGISTRY["yolov8s"] = lambda: YOLOv8Detector("yolov8s")
+    _REGISTRY["yolov8m"] = lambda: YOLOv8Detector("yolov8m")
+    _REGISTRY["yolov8l"] = lambda: YOLOv8Detector("yolov8l")
+    _REGISTRY["yolov8x"] = lambda: YOLOv8Detector("yolov8x")
+    _REGISTRY["fashion"] = lambda: FashionYOLODetector()
 
 
 class DetectorFactory:
@@ -33,7 +35,7 @@ class DetectorFactory:
 
         if cls._instance is None:
             logger.info("Instantiating detector: %s", name)
-            cls._instance = _REGISTRY[key](model_name=name)
+            cls._instance = _REGISTRY[key]()
 
         return cls._instance
 

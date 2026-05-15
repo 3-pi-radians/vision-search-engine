@@ -168,6 +168,7 @@ def inject_css(dark):
 
 *,*::before,*::after{{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;box-sizing:border-box;}}
 .material-symbols-rounded,.material-symbols-outlined,.material-symbols-sharp,.material-icons{{font-family:'Material Symbols Rounded','Material Symbols Outlined','Material Symbols Sharp','Material Icons'!important;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;font-feature-settings:normal;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;}}
+[data-testid="collapsedControl"] *{{font-family:'Material Symbols Rounded','Material Symbols Outlined','Material Symbols Sharp','Material Icons'!important;}}
 :root{{--bg:{bg};--bg2:{bg2};--card:{card};--sb:{sb};--tpri:{tpri};--tsec:{tsec};--tmut:{tmut};--brd:{brd};--acl:{acl};--shd:{shd};--shdh:{shdh};--acc:#7C3AED;}}
 
 .stApp{{background:{bg}!important;}}
@@ -190,7 +191,7 @@ p,li{{color:{tpri};}}
 [data-testid="stFileUploaderDropzone"] p{{color:{tsec}!important;font-size:0.85rem!important;}}
 [data-testid="stFileUploaderDropzone"] button{{background:linear-gradient(135deg,#7C3AED,#9333EA)!important;color:#fff!important;border:none!important;border-radius:8px!important;font-weight:700!important;transform:none!important;white-space:nowrap!important;width:auto!important;padding:0.4rem 1.2rem!important;}}
 [data-testid="stFileUploaderDropzone"] button:hover{{background:linear-gradient(135deg,#6D28D9,#7C3AED)!important;transform:none!important;box-shadow:none!important;}}
-[data-testid="stFileUploaderDropzone"] button p{{color:#fff!important;font-size:0.875rem!important;}}
+[data-testid="stFileUploaderDropzone"] button *{{color:#fff!important;font-size:0.875rem!important;}}
 
 [data-testid="stImage"] img{{border-radius:12px!important;width:100%!important;object-fit:cover!important;transition:transform 0.22s ease,box-shadow 0.22s ease!important;display:block!important;}}
 [data-testid="stImage"] img:hover{{transform:scale(1.015)!important;box-shadow:0 8px 32px rgba(0,0,0,0.18)!important;}}
