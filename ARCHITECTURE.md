@@ -127,11 +127,18 @@
 
 **Design choices:**
 - Keys match DeepFashion folder names exactly (`Blouses_Shirts`, `Denim`, `Shirts_Polos`, etc.) — looked up by `extract_category()` at runtime
-- Covers all unique category folder names in the dataset (14 WOMEN + 9 MEN = 23 slots, 17 unique names)
-- Each prompt: instructs model to ignore the person, focus on the garment, and output `attribute: value, attribute: value` structured format
+- Covers all unique category folder names in the dataset (17 unique names across WOMEN + MEN folders)
+- **v4 sentence format:** each prompt asks the model to *describe the garment in one concise sentence* listing visible attributes (color, fit, neckline, etc.) and to omit unclear ones — no structured templates, no placeholders
 - `DEFAULT_PROMPT` catches any unknown/future category gracefully
+- Exports `get_prompt(category: str) -> str` — callers use this instead of importing `CATEGORY_PROMPTS` directly
+
+**Prompt evolution (why v4):**
+- v1: `attribute: value, attribute: value` format — model copied the template text literally instead of filling values
+- v2: `[value]` placeholder format — same problem, model output `[color]` verbatim
+- v4: free-text sentence — model generates natural descriptions; `render_caption_tags()` badge pills in Streamlit are dormant for v4 captions (no `:` separator) and fall back to plain italic display
 
 **Tradeoffs:**
+- Free-text sentences are less parse-friendly than structured key:value, but produce far more accurate captions from the model
 - Prompt strings are long — separating from `config.py` keeps config readable and prompts independently editable
 
 ---
@@ -143,10 +150,10 @@
 - Model: `blip2-flan-t5-xl` — encoder-decoder with flan-t5 language head; produces richer, more controllable structured output than OPT-based variants
 - Reads source gallery metadata from `IMAGE_PATHS_INPUT` (Kaggle read path) — not the write-path `IMAGE_PATHS_PATH`; output written to `WORK_DIR/captions.json`
 - **Front-view preference:** groups all crops per `item_id`, selects the one with `01_1_front` in filename; falls back to first available — ensures consistent viewpoint across all items
-- **Category extraction:** parses `gallery/WOMEN|MEN/<Category>/` from crop path at runtime; looks up `CATEGORY_PROMPTS` dict from `blip2_prompts.py`; falls back to `DEFAULT_PROMPT` for unknown categories
-- **Generation params** all driven by config: `num_beams=3`, `max_new_tokens=75`, `min_length=10`, `repetition_penalty=1.2`
+- **Category extraction:** parses `gallery/WOMEN|MEN/<Category>/` from crop path at runtime; calls `get_prompt(path)` from `blip2_prompts.py`; falls back to `DEFAULT_PROMPT` for unknown categories
+- **Generation params** all driven by config: `num_beams=3`, `max_new_tokens=50`, `min_length=10`, `repetition_penalty=1.2`
 - **Post-processing:** `_PERSON_RE` regex strips leading person-reference prefixes ("a woman wearing", "a man in", etc.) before storing; captions under 6 words are logged as warnings but stored as-is (partial caption > missing caption)
-- Output format: structured `"attribute: value, attribute: value"` string — parsing into display badges happens in `streamlit_app.py`, not here
+- Output format: free-text sentence (e.g. "A red floral midi dress with a v-neckline and short sleeves.") — Streamlit falls back to plain italic display since v4 captions contain no `:` separator
 - Keyed by `item_id` — reranker and eval look up by item_id
 - Checkpoints every 500 items to survive Kaggle session timeouts; resumable by loading existing `CAPTIONS_PATH`
 
