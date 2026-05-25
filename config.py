@@ -25,6 +25,8 @@ if KAGGLE:
     IMAGE_PATHS_PATH    = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-crops/image_paths.json")
     CLIP_WEIGHTS_DIR    = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-clip-weights")
     CAPTIONS_PATH    = Path("/kaggle/input/datasets/pankajdeopa/deepfashion-inshop-captions/captions.json")
+    CROPS_DIR_CUSTOM        = WORK_DIR / "crops_custom"
+    IMAGE_PATHS_PATH_CUSTOM = WORK_DIR / "image_paths_custom.json"
 else:
     DATASET_IMAGES_DIR  = Path("data/img_highres")
     DATASET_ANNO_DIR    = Path("data/annotations")
@@ -36,6 +38,28 @@ else:
     CROPS_DIR           = Path("data/crops")
     IMAGE_PATHS_PATH    = Path("data/image_paths.json")
     CLIP_WEIGHTS_DIR    = Path("data/clip_weights")
+    CROPS_DIR_CUSTOM        = Path("data/crops_custom")
+    IMAGE_PATHS_PATH_CUSTOM = Path("data/image_paths_custom.json")
+
+# ---------------------------------------------------------------------------
+# Fashion-YOLO offline branch — garment-level crop artifacts
+# ---------------------------------------------------------------------------
+if KAGGLE:
+    CROPS_DIR_FASHION        = Path("/kaggle/working/crops_fashion")
+    IMAGE_PATHS_PATH_FASHION = Path("/kaggle/working/image_paths_fashion.json")
+    CAPTIONS_PATH_FASHION    = Path("/kaggle/working/captions_fashion.json")
+    CLIP_WEIGHTS_FASHION     = Path("/kaggle/working/clip_weights_fashion/clip_finetuned_fashion.pt")
+else:
+    CROPS_DIR_FASHION        = Path("data/crops_fashion")
+    IMAGE_PATHS_PATH_FASHION = Path("data/image_paths_fashion.json")
+    CAPTIONS_PATH_FASHION    = Path("data/captions_fashion.json")
+    CLIP_WEIGHTS_FASHION     = Path("data/clip_weights/clip_finetuned_fashion.pt")
+
+HNSW_INDEX_PATHS_FASHION = {
+    "A": WORK_DIR / "hnsw_index_fashion_A.bin",
+    "B": WORK_DIR / "hnsw_index_fashion_B.bin",
+    "C": WORK_DIR / "hnsw_index_fashion_C.bin",
+}
 
 LIST_EVAL_PARTITION = DATASET_ANNO_DIR / "list_eval_partition.txt"
 LIST_BBOX_INSHOP    = DATASET_ANNO_DIR / "list_bbox_inshop.txt"

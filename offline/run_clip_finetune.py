@@ -13,9 +13,11 @@ Changes from v1:
 - LR logged per epoch
 """
 
+import argparse
 import json
 import logging
 import random
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -77,14 +79,27 @@ class PairDataset(Dataset):
         }
 
 
+_CROP_IDX_RE = re.compile(r"_crop(\d+)$")
+
+
 def build_pairs(image_paths_train: dict[str, dict]) -> list[tuple[str, str]]:
-    """Group train crops by item_id and sample positive pairs."""
-    by_item: dict[str, list[str]] = defaultdict(list)
+    """
+    Group train crops by (item_id, crop_index) and build positive pairs.
+    crop_index is extracted from the filename suffix _crop{i}, acting as a
+    garment-type proxy so only same-garment crops are paired.
+    Falls back to grouping by item_id alone when no _crop{i} suffix is present
+    (backward-compatible with person-mode crops).
+    """
+    by_garment: dict[str, list[str]] = defaultdict(list)
     for entry in image_paths_train.values():
-        by_item[entry["item_id"]].append(entry["path"])
+        item_id = entry["item_id"]
+        stem = Path(entry["path"]).stem
+        m = _CROP_IDX_RE.search(stem)
+        group_key = f"{item_id}_crop{m.group(1)}" if m else item_id
+        by_garment[group_key].append(entry["path"])
 
     pairs = []
-    for item_id, paths in by_item.items():
+    for group_key, paths in by_garment.items():
         existing = [p for p in paths if Path(p).exists()]
         if len(existing) < 2:
             continue
@@ -92,7 +107,7 @@ def build_pairs(image_paths_train: dict[str, dict]) -> list[tuple[str, str]]:
         for i in range(0, len(existing) - 1, 2):
             pairs.append((existing[i], existing[i + 1]))
 
-    logger.info("Built %d positive pairs from %d items", len(pairs), len(by_item))
+    logger.info("Built %d positive pairs from %d garment groups", len(pairs), len(by_garment))
     return pairs
 
 
@@ -138,9 +153,10 @@ def infonce_loss(a_emb: torch.Tensor, p_emb: torch.Tensor, temperature: float) -
 # Train image paths loader
 # ---------------------------------------------------------------------------
 
-def load_train_image_paths() -> dict[str, dict]:
+def load_train_image_paths(fashion: bool = False) -> dict[str, dict]:
     """Scan train crops directory and build path → item_id lookup."""
-    train_crops_dir = config.CROPS_DIR_INPUT / "train"
+    base = config.CROPS_DIR_FASHION if fashion else config.CROPS_DIR_INPUT
+    train_crops_dir = base / "train"
     if not train_crops_dir.exists():
         raise FileNotFoundError(
             f"Train crops not found at {train_crops_dir}. Run run_yolo_crop.py first."
@@ -163,9 +179,9 @@ def load_train_image_paths() -> dict[str, dict]:
 # Training loop
 # ---------------------------------------------------------------------------
 
-def run() -> None:
-    config.CLIP_WEIGHTS_DIR.mkdir(parents=True, exist_ok=True)
-    ckpt_path = config.CLIP_WEIGHTS_DIR / "clip_finetuned.pt"
+def run(fashion: bool = False) -> None:
+    ckpt_path = config.CLIP_WEIGHTS_FASHION if fashion else config.CLIP_WEIGHTS_DIR / "clip_finetuned.pt"
+    ckpt_path.parent.mkdir(parents=True, exist_ok=True)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     logger.info("Device: %s", device)
@@ -190,7 +206,7 @@ def run() -> None:
         best_loss   = ckpt.get("best_loss", float("inf"))
         logger.info("Resuming from epoch %d, best loss so far: %.4f", start_epoch, best_loss)
 
-    train_entries = load_train_image_paths()
+    train_entries = load_train_image_paths(fashion=fashion)
     pairs         = build_pairs(train_entries)
 
     dataset    = PairDataset(pairs, processor)
@@ -278,4 +294,10 @@ def run() -> None:
 
 
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--fashion", action="store_true",
+        help="Use fashion-YOLO train crops and save clip_finetuned_fashion.pt"
+    )
+    args = parser.parse_args()
+    run(fashion=args.fashion)

@@ -166,6 +166,7 @@ def inject_css(dark):
 
     css = f"""<style>
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 
 *,*::before,*::after{{font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;box-sizing:border-box;}}
 .material-symbols-rounded,.material-symbols-outlined,.material-symbols-sharp,.material-icons{{font-family:'Material Symbols Rounded','Material Symbols Outlined','Material Symbols Sharp','Material Icons'!important;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;font-feature-settings:normal;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;}}
@@ -233,6 +234,8 @@ hr{{border-color:{brd}!important;margin:1.25rem 0!important;}}
 .stSelectbox label,.stSlider label,.stNumberInput label{{color:{tsec}!important;font-size:0.8em!important;font-weight:700!important;}}
 [data-testid="stAlert"]{{border-radius:12px!important;border:none!important;}}
 #MainMenu{{visibility:hidden;}}footer{{visibility:hidden;}}header{{visibility:hidden;}}
+[data-testid="stSidebarCollapseButton"]{{display:none!important;}}
+[data-testid="stBaseButton-headerNoPadding"] span[data-testid="stIconMaterial"]{{font-family:'Material Icons','Material Symbols Rounded'!important;font-size:20px!important;font-feature-settings:'liga'!important;-webkit-font-feature-settings:'liga'!important;text-rendering:optimizeLegibility!important;}}
 .cmp-header{{border-radius:10px;padding:10px 13px;margin-bottom:10px;font-size:0.82em;}}
 </style>"""
     st.markdown(css, unsafe_allow_html=True)
@@ -295,7 +298,7 @@ with st.sidebar:
         st.markdown(
             '<div style="display:flex;align-items:center;gap:7px;margin-bottom:2px;">'
             '<span style="font-size:1.35em;">&#128;</span>'
-            '<span style="font-weight:800;font-size:1.05em;letter-spacing:-0.025em;">VisionSearch</span>'
+            '<span style="font-weight:800;font-size:1.05em;letter-spacing:-0.025em;color:var(--tpri);">VisionSearch</span>'
             '</div>'
             '<div style="font-size:0.7em;color:var(--tmut);font-weight:600;letter-spacing:0.04em;">AI FASHION RETRIEVAL</div>',
             unsafe_allow_html=True,
@@ -356,7 +359,7 @@ with st.sidebar:
         '<div><span class="model-chip">CLIP</span> clip-vit-base-patch16</div>'
         '<div><span class="model-chip">BLIP-2</span> blip2-opt-2.7b</div>'
         '<div><span class="model-chip">Reranker</span> blip-itm-base-coco</div>'
-        '<div><span class="model-chip">Detector</span> YOLOv8m</div>'
+        f'<div><span class="model-chip">Detector</span> {st.session_state.get("detector", "fashion")}</div>'
         f'<div><span class="model-chip">Index</span> HNSW {GALLERY_SIZE:,} items</div>'
         '</div>',
         unsafe_allow_html=True,
@@ -650,7 +653,7 @@ with tab_search:
         retrieve_t = timing.get("retrieve_time", None)
         a1, a2, a3, a4, a5 = st.columns(5)
         with a1:
-            st.markdown(_stat("Detection", f"{detect_t:.2f}s" if detect_t else "-", "YOLOv8m" if detect_t else "not run"), unsafe_allow_html=True)
+            st.markdown(_stat("Detection", f"{detect_t:.2f}s" if detect_t else "-", st.session_state.get("detector", "fashion") if detect_t else "not run"), unsafe_allow_html=True)
         with a2:
             st.markdown(_stat("Retrieval", f"{retrieve_t:.2f}s" if retrieve_t else "-", "CLIP+HNSW+BLIP-ITM" if retrieve_t else "not run"), unsafe_allow_html=True)
         with a3:

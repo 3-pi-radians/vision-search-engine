@@ -204,12 +204,18 @@ async def retrieve_endpoint(
     # 4. re-rank
     ranked_indices = state.reranker.rerank(crop, candidate_paths, config_name)
 
-    # 5. build final response (top K_RERANK)
+    # 5. deduplicate by item_id (keep highest-scoring crop per item) then slice to TOP_K
     # hnswlib cosine space returns 1 - cosine_similarity as distance
-    results = []
-    for rank, idx in enumerate(ranked_indices[: config.TOP_K_RERANK]):
+    seen_items: dict[str, dict] = {}
+    for idx in ranked_indices:
         c = candidates[idx]
-        similarity = round(1.0 - distances[idx], 4)
+        if c["item_id"] not in seen_items:
+            seen_items[c["item_id"]] = {"candidate": c, "distance": distances[idx]}
+
+    results = []
+    for rank, (item_id, entry) in enumerate(list(seen_items.items())[: config.TOP_K_RERANK]):
+        c = entry["candidate"]
+        similarity = round(1.0 - entry["distance"], 4)
         results.append(ResultItem(
             rank=rank + 1,
             label=c["label"],

@@ -53,12 +53,13 @@ class ImageFetcher:
             if entry is None:
                 logger.warning("Label %d not found in image_paths.json", label)
                 continue
-            item_id = entry["item_id"]
+            item_id  = entry["item_id"]
+            crop_key = Path(entry["path"]).stem
             results.append({
                 "label":   label,
                 "path":    entry["path"],
                 "item_id": item_id,
-                "caption": self._captions.get(item_id, ""),
+                "caption": self._captions.get(crop_key, self._captions.get(item_id, "")),
             })
         return results
 
