@@ -152,6 +152,13 @@ def run(splits_to_process: list[str] = ("gallery", "train"), detector_name: str 
             split, gallery_idx
         )
 
+    total_images = sum(len(splits[s]) for s in splits_to_process)
+    logger.info(
+        "Fallback count: %d / %d images used full image (no detection above threshold)",
+        fallback_count,
+        total_images,
+    )
+
     # save gallery index → {path, item_id} mapping
     with open(image_paths_out, "w") as f:
         json.dump(image_paths, f)
