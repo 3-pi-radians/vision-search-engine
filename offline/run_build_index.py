@@ -84,7 +84,7 @@ def generate_embeddings(
             img = Image.open(remap_crop_path(entry["path"], fashion=fashion)).convert("RGB")
             images.append(img)
             if cfg["use_captions"]:
-                crop_key = Path(entry["path"]).stem
+                crop_key = f"{entry['item_id']}_{Path(entry['path']).stem}"
                 texts.append(captions.get(crop_key, "a clothing item"))
 
         img_inputs = processor(images=images, return_tensors="pt").to(device)

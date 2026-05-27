@@ -2,7 +2,7 @@
 Offline step 2 — BLIP-2 captioning
 Reads image_paths.json (gallery only), generates one caption per crop,
 writes captions.json: {crop_stem: caption_string}.
-crop_stem = Path(crop_path).stem, e.g. "01_1_front_crop0".
+crop_stem = f"{item_id}_{Path(crop_path).stem}", e.g. "id_00000001_01_1_front_crop0".
 Resumable: skips crop_stems already present in captions.json.
 """
 
@@ -72,7 +72,7 @@ def run(fashion: bool = False) -> None:
     # one caption per crop stem — crop stems are already unique, no deduplication needed
     seen_crops: dict[str, str] = {}   # crop_stem → crop path
     for entry in image_paths.values():
-        crop_stem = Path(entry["path"]).stem
+        crop_stem = f"{entry['item_id']}_{Path(entry['path']).stem}"
         seen_crops[crop_stem] = entry["path"]
 
     remaining = {stem: path for stem, path in seen_crops.items() if stem not in captions}

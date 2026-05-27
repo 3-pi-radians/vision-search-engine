@@ -54,7 +54,7 @@ class ImageFetcher:
                 logger.warning("Label %d not found in image_paths.json", label)
                 continue
             item_id  = entry["item_id"]
-            crop_key = Path(entry["path"]).stem
+            crop_key = f"{item_id}_{Path(entry['path']).stem}"
             results.append({
                 "label":   label,
                 "path":    entry["path"],
