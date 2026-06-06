@@ -137,3 +137,18 @@ ALPHA           = 0.7
 # ---------------------------------------------------------------------------
 API_HOST = "0.0.0.0"
 API_PORT = 8504
+
+# -------------------------------------------------------------------------
+# Runtime override — activate fashion pipeline paths
+# Set USE_FASHION=1 environment variable to switch the server
+# from original pipeline paths to fashion-YOLO pipeline paths.
+# Usage:
+#   USE_FASHION=1 uvicorn main:app --host 0.0.0.0 --port 8504
+# Or in subprocess:
+#   env["USE_FASHION"] = "1"
+# -------------------------------------------------------------------------
+if os.environ.get("USE_FASHION") == "1":
+    IMAGE_PATHS_PATH = IMAGE_PATHS_PATH_FASHION
+    CAPTIONS_PATH    = CAPTIONS_PATH_FASHION
+    HNSW_INDEX_PATHS = HNSW_INDEX_PATHS_FASHION
+    CLIP_WEIGHTS_DIR = CLIP_WEIGHTS_FASHION.parent
