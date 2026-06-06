@@ -93,7 +93,7 @@ BLIP2_REPETITION_PENALTY = 1.2
 # BLIP-ITM reranker (online — reranker.py) — separate smaller model, purpose-built for scoring
 BLIP2_RERANK_MODEL_NAME  = "Salesforce/blip-itm-base-coco"
 RERANK_BATCH_SIZE        = 4
-ENABLE_RERANKER          = KAGGLE
+ENABLE_RERANKER          = False
 
 # ---------------------------------------------------------------------------
 # CLIP
