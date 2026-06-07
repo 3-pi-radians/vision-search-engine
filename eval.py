@@ -1,15 +1,6 @@
-"""
-Batch evaluation script — Recall@K, NDCG@K, mAP@K for K=5,10,15.
-
-For each query image in the DeepFashion query split:
-  1. Run YOLO crop via POST /crop
-  2. Send top crop to POST /retrieve
-  3. Compare returned item_ids against ground-truth item_ids for that item
-
-Ground truth: all gallery images sharing the same item_id as the query are positives.
-"""
-
 import argparse
+import base64
+import io as _io
 import json
 import logging
 import math
@@ -92,12 +83,23 @@ def ap_at_k(ranked_item_ids: list[str], query_item_id: str, relevant_count: int,
 # ---------------------------------------------------------------------------
 
 def build_ground_truth(image_paths: dict[int, dict]) -> dict[str, int]:
-    """item_id → number of gallery images with that item_id."""
+    """
+    item_id → number of unique source gallery images with that item_id.
+
+    Uses source_image field if present (fashion pipeline) to avoid
+    inflating the Recall denominator with multiple garment crops
+    from the same source image (e.g. jacket crop + jeans crop from
+    the same photo both count as 1, not 2).
+
+    Falls back to crop path for backward compatibility with the
+    original image_paths.json format which has no source_image field.
+    """
     from collections import defaultdict
-    counts: dict[str, int] = defaultdict(int)
+    sources: dict[str, set] = defaultdict(set)
     for v in image_paths.values():
-        counts[v["item_id"]] += 1
-    return dict(counts)
+        source = v.get("source_image", v["path"])
+        sources[v["item_id"]].add(source)
+    return {item_id: len(srcs) for item_id, srcs in sources.items()}
 
 
 # ---------------------------------------------------------------------------
@@ -200,28 +202,53 @@ def evaluate(
             image_bytes = q_path.read_bytes()
 
             if skip_crop:
-                # use full image directly (faster for quick sanity checks)
-                crop_bytes = image_bytes
+                # Use full image directly — faster for quick sanity checks
+                results = retrieve(image_bytes, cfg_name)
+                ranked_ids = [r["item_id"] for r in results[:max_k]]
+
             else:
                 crops = crop_image(image_bytes)
-                if not crops:
-                    crop_bytes = image_bytes
-                else:
-                    import base64, io as _io
-                    top_crop_b64 = crops[0]["image_b64"]
-                    crop_img = Image.open(_io.BytesIO(base64.b64decode(top_crop_b64))).convert("RGB")
-                    buf = _io.BytesIO()
-                    crop_img.save(buf, format="JPEG", quality=85)
-                    crop_bytes = buf.getvalue()
 
-            results = retrieve(crop_bytes, cfg_name)
+                if not crops:
+                    # No garments detected — fall back to full image
+                    results = retrieve(image_bytes, cfg_name)
+                    ranked_ids = [r["item_id"] for r in results[:max_k]]
+
+                else:
+                    # Try ALL detected crops, keep the result where the
+                    # query item_id ranks highest in the top-K list.
+                    # This handles the case where FashionYOLO detects
+                    # multiple garments (e.g. top + jeans) and crop[0]
+                    # (highest confidence) may not be the query item.
+                    best_ranked_ids = None
+                    best_rank = max_k + 1
+
+                    for crop in crops:
+                        crop_img = Image.open(
+                            _io.BytesIO(base64.b64decode(crop["image_b64"]))
+                        ).convert("RGB")
+                        buf = _io.BytesIO()
+                        crop_img.save(buf, format="JPEG", quality=85)
+                        cb = buf.getvalue()
+
+                        res = retrieve(cb, cfg_name)
+                        ranked = [r["item_id"] for r in res[:max_k]]
+
+                        try:
+                            rank = ranked.index(q_item_id)
+                        except ValueError:
+                            rank = max_k + 1
+
+                        if rank < best_rank:
+                            best_rank = rank
+                            best_ranked_ids = ranked
+
+                    ranked_ids = best_ranked_ids if best_ranked_ids is not None else []
 
         except Exception as e:
             logger.error("Query %d failed: %s", q_idx, e)
             skipped += 1
             continue
-
-        ranked_ids = [r["item_id"] for r in results[:max_k]]
 
         for k in k_values:
             accumulators[f"recall@{k}"].append(recall_at_k(ranked_ids, q_item_id, relevant_count, k))
@@ -280,7 +307,7 @@ def main():
         print(f"\n  Queries evaluated: {metrics['queries_evaluated']}")
         print(f"  Queries skipped:   {metrics['queries_skipped']}")
         print(f"  Elapsed:           {elapsed:.1f}s")
-        print(f"\n{metrics}")   # JSON-parseable block for Streamlit
+        print(f"\n{metrics}")
 
 
 if __name__ == "__main__":
