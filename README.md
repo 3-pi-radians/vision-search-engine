@@ -1,10 +1,5 @@
 # Visual Product Search Engine
 
-> Visual Recognition Course Project — IIIT Bangalore  
-> Team: Chaitanya Nemade · Yuvraj Deshmukh · Pankaj Deopa · Sandiri Rohith
-
----
-
 ## Overview
 
 A fashion image retrieval system built on the DeepFashion In-Shop Clothes Retrieval dataset. Users upload a clothing photo, confirm a YOLO-detected crop, and receive the top-K most visually similar items from a gallery of ~12,600 products — ranked by fused CLIP embeddings and re-ranked with BLIP-2 ITM scoring.
